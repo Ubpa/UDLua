@@ -18,6 +18,22 @@ struct vec {
 		return { x + rhs.x, y + rhs.y };
 	}
 
+	vec operator-(const vec& rhs) const {
+		return { x - rhs.x, y - rhs.y };
+	}
+
+	vec operator*(const vec& rhs) const {
+		return { x * rhs.x, y * rhs.y };
+	}
+
+	vec operator/(const vec& rhs) const {
+		return { x / rhs.x, y / rhs.y };
+	}
+
+	friend bool operator==(const vec& lhs, const vec& rhs) {
+		return lhs.x == rhs.x && lhs.y == rhs.y;
+	}
+
 	vec& offset(float v) {
 		x += v;
 		y += v;
@@ -36,7 +52,6 @@ int main() {
 	UDRefl::Mngr->AddField<&vec::x>("x");
 	UDRefl::Mngr->AddField<&vec::y>("y");
 	UDRefl::Mngr->AddMethod<&vec::norm>("norm");
-	UDRefl::Mngr->AddMethod<&vec::operator+>(UDRefl::StrIDRegistry::Meta::operator_add);
 	UDRefl::Mngr->AddMethod<&vec::offset>("offset");
 
 	char buffer[256];
