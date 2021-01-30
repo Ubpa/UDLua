@@ -819,7 +819,7 @@ static int f_Functor_call(lua_State* L_) {
 	auto rst = ptr.MInvoke(
 		methodID,
 		std::span<const TypeID>{typeIDs.data(), typeIDs.size()},
-		static_cast<UDRefl::ArgsBuffer>(argsbuffer.data())
+		static_cast<UDRefl::ArgPtrBuffer>(argsbuffer.data())
 	);
 
 	if(!rst.GetID().Valid())
@@ -849,7 +849,7 @@ static int f_Ptr_binary_operator(lua_State* L_) {
 	const auto& ptr = *(Ptr*)L.checkudata(1, type_name<Ptr>().Data());
 
 	void* argsbuffer;
-	std::pmr::vector<std::uint8_t> copied_arg{ std::pmr::vector<std::uint8_t>::allocator_type{ UDRefl::Mngr->GetTemporaryResource() } };
+	std::aligned_storage_t<sizeof(void*)> copied_arg;
 	TypeID argTypeID;
 
 	const int arg = 2;
@@ -858,23 +858,20 @@ static int f_Ptr_binary_operator(lua_State* L_) {
 	{
 	case LUA_TBOOLEAN:
 	{
-		copied_arg.resize(sizeof(bool));
-		UDRefl::buffer_as<bool>(copied_arg.data()) = static_cast<bool>(L.toboolean(arg));
-		argsbuffer = copied_arg.data();
+		UDRefl::buffer_as<bool>(&copied_arg) = static_cast<bool>(L.toboolean(arg));
+		argsbuffer = &copied_arg;
 		argTypeID = TypeID_of<bool>;
 	}
 	break;
 	case LUA_TNUMBER:
 		if (L.isinteger(arg)) {
-			copied_arg.resize(sizeof(lua_Integer));
-			UDRefl::buffer_as<lua_Integer>(copied_arg.data()) = static_cast<lua_Integer>(L.tointeger(arg));
-			argsbuffer = copied_arg.data();
+			UDRefl::buffer_as<lua_Integer>(&copied_arg) = static_cast<lua_Integer>(L.tointeger(arg));
+			argsbuffer = &copied_arg;
 			argTypeID = TypeID_of<lua_Integer>;
 		}
 		else if (L.isnumber(arg)) {
-			copied_arg.resize(sizeof(lua_Number));
-			UDRefl::buffer_as<lua_Number>(copied_arg.data()) = static_cast<lua_Number>(L.tointeger(arg));
-			argsbuffer = copied_arg.data();
+			UDRefl::buffer_as<lua_Number>(&copied_arg) = static_cast<lua_Number>(L.tointeger(arg));
+			argsbuffer = &copied_arg;
 			argTypeID = TypeID_of<lua_Number>;
 		}
 		else
@@ -920,7 +917,7 @@ static int f_Ptr_binary_operator(lua_State* L_) {
 	auto rst = ptr->MInvoke(
 		StrID{ ID },
 		std::span<const TypeID>{&argTypeID, 1},
-		static_cast<UDRefl::ArgsBuffer>(&argsbuffer)
+		static_cast<UDRefl::ArgPtrBuffer>(&argsbuffer)
 	);
 
 	if (!rst.GetID().Valid())
