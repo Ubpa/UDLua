@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cmath>
 #include <array>
+#include <map>
 
 using namespace Ubpa;
 
@@ -51,6 +52,7 @@ struct vec {
 };
 
 int main() {
+	std::map<int, int>::iterator t;
 	UDRefl::Mngr->RegisterType<vec>();
 	UDRefl::Mngr->AddConstructor<vec, float, float>();
 	UDRefl::Mngr->AddField<&vec::x>("x");
