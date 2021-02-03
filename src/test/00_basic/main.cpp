@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <array>
 
 using namespace Ubpa;
 
@@ -40,6 +41,8 @@ struct vec {
 		return *this;
 	}
 
+	std::array<float, 2>& to_array() { return *reinterpret_cast<std::array<float, 2>*>(this); }
+
 	template<typename Out>
 	friend Out& operator<<(Out& o, const vec& v) {
 		o << v.x << " " << v.y;
@@ -54,6 +57,16 @@ int main() {
 	UDRefl::Mngr->AddField<&vec::y>("y");
 	UDRefl::Mngr->AddMethod<&vec::norm>("norm");
 	UDRefl::Mngr->AddMethod<&vec::offset>("offset");
+	UDRefl::Mngr->AddMethod<&vec::to_array>("to_array");
+
+	UDRefl::Mngr->RegisterType<std::array<float, 2>>();
+
+	/*
+	v = ReflMngr.MakeShared("vec", 2, 3)
+	arr = v:to_array():AsObjectPtr()
+	iter = arr:begin()
+	while iter ~= arr:end_() do print(iter:__deref()); iter:__pre_inc(); end
+	*/
 
 	char buffer[256];
 	int error;
