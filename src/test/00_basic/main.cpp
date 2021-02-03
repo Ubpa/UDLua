@@ -49,6 +49,7 @@ struct vec {
 
 int main() {
 	UDRefl::Mngr->RegisterType<vec>();
+	UDRefl::Mngr->AddConstructor<vec, float, float>();
 	UDRefl::Mngr->AddField<&vec::x>("x");
 	UDRefl::Mngr->AddField<&vec::y>("y");
 	UDRefl::Mngr->AddMethod<&vec::norm>("norm");

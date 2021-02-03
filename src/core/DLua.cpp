@@ -3,7 +3,6 @@
 #include <ULuaW/LuaStateView.h>
 
 #include <UDRefl/UDRefl.h>
-#include <USRefl/USRefl.h>
 
 #include <lua.hpp>
 
@@ -630,6 +629,7 @@ static int f_Functor_call(lua_State* L_) {
 				ptr = Ptr{ functor.typeID };
 		}
 	}
+
 	if (argnum > UDRefl::MaxArgNum) {
 		return L.error("%s::__call : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
 			type_name<Functor>().Data(), argnum, static_cast<lua_Integer>(UDRefl::MaxArgNum));
@@ -891,20 +891,114 @@ static const struct luaL_Reg lib_SharedObject[] = {
 
 static int f_ReflMngr_MakeShared(lua_State* L_) {
 	LuaStateView L{ L_ };
-	int size = L.gettop();
-	if (size == 0)
+	const int L_argnum = L.gettop();
+	if (L_argnum <= 0)
 		return L.error("%s::MakeShared : The number of arguments is invalid.", type_name<UDRefl::ReflMngr>().Data());
-	auto typeID = *(TypeID*)L.checkudata(1, type_name<TypeID>().Data());
 
-	UDRefl::SharedObject obj;
+	TypeID ID;
+	int type = L.type(1);
+	switch (type)
+	{
+	case LUA_TSTRING:
+		ID = TypeID{ details::get_arg<std::string_view>(L, 1) };
+		break;
+	case LUA_TNUMBER:
+		ID = TypeID{ static_cast<std::size_t>(L.checkinteger(1)) };
+		break;
+	case LUA_TUSERDATA:
+		ID = *static_cast<TypeID*>(L.checkudata(1, type_name<TypeID>().Data()));
+		break;
+	default:
+		break;
+	}
 
-	if (size == 1)
-		obj = UDRefl::Mngr->MakeShared(typeID);
-	else
-		assert(false); // TODO
+	const int argnum = L_argnum - 1;
+
+	if (argnum > UDRefl::MaxArgNum) {
+		return L.error("%s::MakeShared : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
+			type_name<UDRefl::ReflMngr>().Data(), argnum, static_cast<lua_Integer>(UDRefl::MaxArgNum));
+	}
+
+	void* argptr_buffer[UDRefl::MaxArgNum];
+	std::size_t argTypeID_buffer[UDRefl::MaxArgNum];
+	std::uint64_t copied_args_buffer[UDRefl::MaxArgNum];
+	std::size_t num_copied_args = 0;
+
+	for (std::size_t i{ 0 }; i < argnum; i++) {
+		int arg = static_cast<int>(i) + L_argnum - argnum + 1;
+		int type = L.type(arg);
+		switch (type)
+		{
+		case LUA_TBOOLEAN:
+		{
+			auto arg_buffer = &copied_args_buffer[num_copied_args++];
+			argptr_buffer[i] = arg_buffer;
+			argTypeID_buffer[i] = TypeID_of<bool>.GetValue();
+			UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
+		}
+		break;
+		case LUA_TNUMBER:
+			if (L.isinteger(arg)) {
+				auto arg_buffer = &copied_args_buffer[num_copied_args++];
+				argptr_buffer[i] = arg_buffer;
+				argTypeID_buffer[i] = TypeID_of<lua_Integer>.GetValue();
+				UDRefl::buffer_as<lua_Integer>(arg_buffer) = static_cast<lua_Integer>(L.tointeger(arg));
+			}
+			else if (L.isnumber(arg)) {
+				auto arg_buffer = &copied_args_buffer[num_copied_args++];
+				argptr_buffer[i] = arg_buffer;
+				argTypeID_buffer[i] = TypeID_of<lua_Number>.GetValue();
+				UDRefl::buffer_as<lua_Number>(arg_buffer) = static_cast<lua_Number>(L.tonumber(arg));
+			}
+			else
+				assert(false);
+			break;
+		case LUA_TSTRING:
+			assert(false); // TODO
+			break;
+		case LUA_TUSERDATA:
+			if (void* udata = L.testudata(-1, type_name<UDRefl::ConstObjectPtr>().Data())) {
+				const auto& rhs = *static_cast<UDRefl::ConstObjectPtr*>(udata);
+				auto ref_rhs = rhs.AddConstLValueReference();
+				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
+				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
+			}
+			else if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectPtr>().Data())) {
+				const auto& rhs = *static_cast<UDRefl::ObjectPtr*>(udata);
+				auto ref_rhs = rhs.AddLValueReference();
+				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
+				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
+			}
+			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedConstObject>().Data())) {
+				const auto& rhs = *static_cast<UDRefl::SharedConstObject*>(udata);
+				auto ref_rhs = rhs->AddConstLValueReference();
+				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
+				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
+			}
+			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
+				const auto& rhs = *static_cast<UDRefl::SharedObject*>(udata);
+				auto ref_rhs = rhs->AddLValueReference();
+				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
+				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
+			}
+			else if (!L.getmetatable(arg)) {
+				argptr_buffer[i] = L.touserdata(arg);
+				argTypeID_buffer[i] = TypeID_of<void*>.GetValue();
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	UDRefl::SharedObject obj = UDRefl::Mngr->MakeShared(
+		ID,
+		std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)},
+		static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
+	);
 
 	if (!obj.Valid())
-		return L.error("%s::MakeShared : fail.", type_name<UDRefl::ReflMngr>().Data());
+		return L.error("%s::MakeShared : Fail.", type_name<UDRefl::ReflMngr>().Data());
 	
 	auto* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
 	new(buffer)UDRefl::SharedObject{ std::move(obj) };

@@ -7,6 +7,4 @@ Ubpa_AddTarget(
   LIB
     Ubpa::ULuaW_core
     Ubpa::UDRefl_core
-  LIB_PRIVATE
-    Ubpa::USRefl_core
 )
