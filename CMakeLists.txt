@@ -10,7 +10,6 @@ Ubpa_InitProject()
 
 Ubpa_AddDep(ULuaW  0.1.0)
 Ubpa_AddDep(UDRefl 0.7.2)
-Ubpa_AddDep(USRefl 0.8.0)
 
 Ubpa_AddSubDirsRec(src)
 

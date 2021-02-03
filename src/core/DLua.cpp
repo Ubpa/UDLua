@@ -9,104 +9,7 @@
 
 using namespace Ubpa;
 
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::IDBase> :
-	TypeInfoBase<Ubpa::IDBase>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {
-		Field {TSTR("InvalidValue"), &Type::InvalidValue},
-		Field {TSTR("GetValue"), &Type::GetValue},
-		Field {TSTR("Valid"), &Type::Valid},
-		Field {TSTR("Is"), &Type::Is},
-		Field {TSTR("Reset"), &Type::Reset},
-		Field {TSTR("operator bool"), &Type::operator bool},
-	};
-};
-
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::StrID> :
-	TypeInfoBase<Ubpa::StrID, Base<IDBase>>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {};
-};
-
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::TypeID> :
-	TypeInfoBase<Ubpa::TypeID, Base<IDBase>>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {
-	};
-};
-
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::UDRefl::SharedObjectBase> :
-	TypeInfoBase<Ubpa::UDRefl::SharedObjectBase>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {
-		Field {TSTR("GetID"), &Type::GetID},
-		Field {TSTR("Valid"), &Type::Valid},
-	};
-};
-
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::UDRefl::SharedConstObject> :
-	TypeInfoBase<Ubpa::UDRefl::SharedConstObject, Base<Ubpa::UDRefl::SharedObjectBase>>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {
-		Field {TSTR("AsObjectPtr"), &Type::AsObjectPtr},
-	};
-};
-
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::UDRefl::SharedObject> :
-	TypeInfoBase<Ubpa::UDRefl::SharedObject, Base<Ubpa::UDRefl::SharedObjectBase>>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {
-		Field {TSTR("AsSharedConstObject"), &Type::AsSharedConstObject},
-		Field {TSTR("AsObjectPtr"), &Type::AsObjectPtr},
-		Field {TSTR("AsConstObjectPtr"), &Type::AsConstObjectPtr},
-	};
-};
-
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::UDRefl::ObjectPtrBase> :
-	TypeInfoBase<Ubpa::UDRefl::ObjectPtrBase>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {
-		Field {TSTR("GetID"), &Type::GetID},
-		Field {TSTR("Valid"), &Type::Valid},
-		Field {TSTR("GetType"), &Type::GetType},
-		Field {TSTR("TypeName"), &Type::TypeName},
-	};
-};
-
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::UDRefl::ConstObjectPtr> :
-	TypeInfoBase<Ubpa::UDRefl::ConstObjectPtr, Base<UDRefl::ObjectPtrBase>>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {};
-};
-
-template<>
-struct Ubpa::USRefl::TypeInfo<Ubpa::UDRefl::ObjectPtr> :
-	TypeInfoBase<Ubpa::UDRefl::ObjectPtr, Base<UDRefl::ObjectPtrBase>>
-{
-	static constexpr AttrList attrs = {};
-	static constexpr FieldList fields = {};
-};
-
 namespace Ubpa::details {
-	template<auto fieldptr>
-	struct FieldName;
-
 	namespace Meta {
 		static constexpr auto add = TSTR("add");
 		static constexpr auto band = TSTR("band");
@@ -167,14 +70,6 @@ namespace Ubpa::details {
 		using t_unm = decltype(unm);
 	}
 }
-
-template<typename Obj, typename Func, Func Obj::* fieldptr>
-struct Ubpa::details::FieldName<fieldptr> {
-	static constexpr auto get() {
-		constexpr auto& field = USRefl_ElemList_GetByValue(Ubpa::USRefl::TypeInfo<Obj>::fields, fieldptr);
-		return typename std::decay_t<decltype(field)>::TName{};
-	}
-};
 
 namespace Ubpa::details {
 	struct CallHandle {
@@ -282,8 +177,8 @@ namespace Ubpa::details {
 		}
 	};
 
-	template<auto funcptr, typename CustomObj = void>
-	constexpr lua_CFunction wrap() noexcept {
+	template<auto funcptr, typename CustomObj, typename FuncName>
+	constexpr lua_CFunction wrap(FuncName = {}) noexcept {
 		using FuncPtr = decltype(funcptr);
 		using Traits = FuncTraits<FuncPtr>;
 		using ArgList = typename Traits::ArgList;
@@ -297,7 +192,7 @@ namespace Ubpa::details {
 				if (n != 1 + Length_v<ArgList>)
 					return L.error("%s::%s : The number of arguments is invalid. The function needs (object + %I) arguments.",
 						type_name<Obj>().Data(),
-						FieldName<funcptr>::get().Data(),
+						FuncName::Data(),
 						static_cast<lua_Integer>(Length_v<ArgList>));
 
 				auto* obj = (Obj*)L.checkudata(1, type_name<Obj>().Data());
@@ -308,7 +203,7 @@ namespace Ubpa::details {
 				if (n != Length_v<ArgList>)
 					return L.error("%s::%s : The number of arguments is invalid. The function needs %I arguments (no object).",
 						type_name<Obj>().Data(),
-						FieldName<funcptr>::get().Data(),
+						FuncName::Data(),
 						static_cast<lua_Integer>(Length_v<ArgList>));
 
 				caller<funcptr>(L, std::make_index_sequence<Length_v<ArgList>>{});
@@ -735,13 +630,15 @@ static int f_Functor_call(lua_State* L_) {
 				ptr = Ptr{ functor.typeID };
 		}
 	}
+	if (argnum > UDRefl::MaxArgNum) {
+		return L.error("%s::__call : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
+			type_name<Functor>().Data(), argnum, static_cast<lua_Integer>(UDRefl::MaxArgNum));
+	}
 
-	std::pmr::vector<void*> argsbuffer{ std::pmr::vector<void*>::allocator_type{ UDRefl::Mngr->GetTemporaryResource() } };
-	std::pmr::vector<std::pmr::vector<std::uint8_t>> copied_args
-		{ std::pmr::vector<std::pmr::vector<std::uint8_t>>::allocator_type{ UDRefl::Mngr->GetTemporaryResource() } };
-	std::pmr::vector<TypeID> typeIDs{ std::pmr::vector<TypeID>::allocator_type{ UDRefl::Mngr->GetTemporaryResource() } };
-	argsbuffer.resize(argnum);
-	typeIDs.resize(argnum);
+	void* argptr_buffer[UDRefl::MaxArgNum];
+	std::size_t argTypeID_buffer[UDRefl::MaxArgNum];
+	std::uint64_t copied_args_buffer[UDRefl::MaxArgNum];
+	std::size_t num_copied_args = 0;
 	
 	for (std::size_t i{ 0 }; i < argnum; i++) {
 		int arg = static_cast<int>(i) + L_argnum - argnum + 1;
@@ -750,30 +647,24 @@ static int f_Functor_call(lua_State* L_) {
 		{
 		case LUA_TBOOLEAN:
 		{
-			std::pmr::vector<std::uint8_t> buffer{ std::pmr::vector<std::uint8_t>::allocator_type{  UDRefl::Mngr->GetTemporaryResource() } };
-			buffer.resize(sizeof(bool));
-			UDRefl::buffer_as<bool>(buffer.data()) = static_cast<bool>(L.toboolean(arg));
-			argsbuffer[i] = buffer.data();
-			typeIDs[i] = TypeID_of<bool>;
-			copied_args.push_back(std::move(buffer));
+			auto arg_buffer = &copied_args_buffer[num_copied_args++];
+			argptr_buffer[i] = arg_buffer;
+			argTypeID_buffer[i] = TypeID_of<bool>.GetValue();
+			UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
 		}
 			break;
 		case LUA_TNUMBER:
 			if (L.isinteger(arg)) {
-				std::pmr::vector<std::uint8_t> buffer{ std::pmr::vector<std::uint8_t>::allocator_type{  UDRefl::Mngr->GetTemporaryResource() } };
-				buffer.resize(sizeof(lua_Integer));
-				UDRefl::buffer_as<lua_Integer>(buffer.data()) = static_cast<lua_Integer>(L.tointeger(arg));
-				argsbuffer[i] = buffer.data();
-				typeIDs[i] = TypeID_of<lua_Integer>;
-				copied_args.push_back(std::move(buffer));
+				auto arg_buffer = &copied_args_buffer[num_copied_args++];
+				argptr_buffer[i] = arg_buffer;
+				argTypeID_buffer[i] = TypeID_of<lua_Integer>.GetValue();
+				UDRefl::buffer_as<lua_Integer>(arg_buffer) = static_cast<lua_Integer>(L.tointeger(arg));
 			}
 			else if (L.isnumber(arg)) {
-				std::pmr::vector<std::uint8_t> buffer{ std::pmr::vector<std::uint8_t>::allocator_type{  UDRefl::Mngr->GetTemporaryResource() } };
-				buffer.resize(sizeof(lua_Number));
-				UDRefl::buffer_as<lua_Number>(buffer.data()) = static_cast<lua_Number>(L.tointeger(arg));
-				argsbuffer[i] = buffer.data();
-				typeIDs[i] = TypeID_of<lua_Number>;
-				copied_args.push_back(std::move(buffer));
+				auto arg_buffer = &copied_args_buffer[num_copied_args++];
+				argptr_buffer[i] = arg_buffer;
+				argTypeID_buffer[i] = TypeID_of<lua_Number>.GetValue();
+				UDRefl::buffer_as<lua_Number>(arg_buffer) = static_cast<lua_Number>(L.tonumber(arg));
 			}
 			else
 				assert(false);
@@ -785,30 +676,30 @@ static int f_Functor_call(lua_State* L_) {
 			if (void* udata = L.testudata(-1, type_name<UDRefl::ConstObjectPtr>().Data())) {
 				const auto& rhs = *static_cast<UDRefl::ConstObjectPtr*>(udata);
 				auto ref_rhs = rhs.AddConstLValueReference();
-				argsbuffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				typeIDs[i] = ref_rhs.GetID();
+				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
+				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
 			}
 			else if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectPtr>().Data())) {
 				const auto& rhs = *static_cast<UDRefl::ObjectPtr*>(udata);
 				auto ref_rhs = rhs.AddLValueReference();
-				argsbuffer[i] = ref_rhs.GetPtr();
-				typeIDs[i] = ref_rhs.GetID();
+				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
+				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
 			}
 			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedConstObject>().Data())) {
 				const auto& rhs = *static_cast<UDRefl::SharedConstObject*>(udata);
 				auto ref_rhs = rhs->AddConstLValueReference();
-				argsbuffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				typeIDs[i] = ref_rhs.GetID();
+				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
+				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
 			}
 			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
 				const auto& rhs = *static_cast<UDRefl::SharedObject*>(udata);
 				auto ref_rhs = rhs->AddLValueReference();
-				argsbuffer[i] = ref_rhs.GetPtr();
-				typeIDs[i] = ref_rhs.GetID();
+				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
+				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
 			}
 			else if (!L.getmetatable(arg)) {
-				argsbuffer[i] = L.touserdata(arg);
-				typeIDs[i] = TypeID_of<void*>;
+				argptr_buffer[i] = L.touserdata(arg);
+				argTypeID_buffer[i] = TypeID_of<void*>.GetValue();
 			}
 			break;
 		default:
@@ -818,12 +709,12 @@ static int f_Functor_call(lua_State* L_) {
 
 	auto rst = ptr.MInvoke(
 		methodID,
-		std::span<const TypeID>{typeIDs.data(), typeIDs.size()},
-		static_cast<UDRefl::ArgPtrBuffer>(argsbuffer.data())
+		std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)},
+		static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
 	);
 
 	if(!rst.GetID().Valid())
-		return L.error("%s::__call : Fail.", type_name<Functor>().Data());
+		return L.error("%s::__call : Invoke fail.", type_name<Functor>().Data());
 
 	if (rst.GetID().Is<void>())
 		return 0;
@@ -848,7 +739,7 @@ static int f_Ptr_binary_operator(lua_State* L_) {
 
 	const auto& ptr = *(Ptr*)L.checkudata(1, type_name<Ptr>().Data());
 
-	void* argsbuffer;
+	void* argptr;
 	std::aligned_storage_t<sizeof(void*)> copied_arg;
 	TypeID argTypeID;
 
@@ -859,19 +750,19 @@ static int f_Ptr_binary_operator(lua_State* L_) {
 	case LUA_TBOOLEAN:
 	{
 		UDRefl::buffer_as<bool>(&copied_arg) = static_cast<bool>(L.toboolean(arg));
-		argsbuffer = &copied_arg;
+		argptr = &copied_arg;
 		argTypeID = TypeID_of<bool>;
 	}
 	break;
 	case LUA_TNUMBER:
 		if (L.isinteger(arg)) {
 			UDRefl::buffer_as<lua_Integer>(&copied_arg) = static_cast<lua_Integer>(L.tointeger(arg));
-			argsbuffer = &copied_arg;
+			argptr = &copied_arg;
 			argTypeID = TypeID_of<lua_Integer>;
 		}
 		else if (L.isnumber(arg)) {
 			UDRefl::buffer_as<lua_Number>(&copied_arg) = static_cast<lua_Number>(L.tointeger(arg));
-			argsbuffer = &copied_arg;
+			argptr = &copied_arg;
 			argTypeID = TypeID_of<lua_Number>;
 		}
 		else
@@ -884,29 +775,29 @@ static int f_Ptr_binary_operator(lua_State* L_) {
 		if (void* udata = L.testudata(-1, type_name<UDRefl::ConstObjectPtr>().Data())) {
 			const auto& rhs = *static_cast<UDRefl::ConstObjectPtr*>(udata);
 			auto ref_rhs = rhs.AddConstLValueReference();
-			argsbuffer = const_cast<void*>(ref_rhs.GetPtr());
+			argptr = const_cast<void*>(ref_rhs.GetPtr());
 			argTypeID = ref_rhs.GetID();
 		}
 		else if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectPtr>().Data())) {
 			const auto& rhs = *static_cast<UDRefl::ObjectPtr*>(udata);
 			auto ref_rhs = rhs.AddLValueReference();
-			argsbuffer = ref_rhs.GetPtr();
+			argptr = ref_rhs.GetPtr();
 			argTypeID = ref_rhs.GetID();
 		}
 		else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedConstObject>().Data())) {
 			const auto& rhs = *static_cast<UDRefl::SharedConstObject*>(udata);
 			auto ref_rhs = rhs->AddConstLValueReference();
-			argsbuffer = const_cast<void*>(ref_rhs.GetPtr());
+			argptr = const_cast<void*>(ref_rhs.GetPtr());
 			argTypeID = ref_rhs.GetID();
 		}
 		else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
 			const auto& rhs = *static_cast<UDRefl::SharedObject*>(udata);
 			auto ref_rhs = rhs->AddLValueReference();
-			argsbuffer = ref_rhs.GetPtr();
+			argptr = ref_rhs.GetPtr();
 			argTypeID = ref_rhs.GetID();
 		}
 		else if (!L.getmetatable(arg)) {
-			argsbuffer = L.touserdata(arg);
+			argptr = L.touserdata(arg);
 			argTypeID = TypeID_of<void*>;
 		}
 		break;
@@ -914,14 +805,22 @@ static int f_Ptr_binary_operator(lua_State* L_) {
 		break;
 	}
 
+	std::span<const TypeID> argTypeIDs{ &argTypeID, 1 };
+	UDRefl::ArgPtrBuffer argptr_buffer = &argptr;
+
 	auto rst = ptr->MInvoke(
 		StrID{ ID },
-		std::span<const TypeID>{&argTypeID, 1},
-		static_cast<UDRefl::ArgPtrBuffer>(&argsbuffer)
+		argTypeIDs,
+		argptr_buffer
 	);
 
-	if (!rst.GetID().Valid())
-		return L.error("%s::__%s : Fail.", type_name<Ptr>().Data(), MetaName::Data());
+	if (!rst.GetID().Valid()) {
+		return L.error("%s::__%s : The function isn't invocable with %s.",
+			type_name<Ptr>().Data(),
+			MetaName::Data(),
+			UDRefl::Mngr->tregistry.Nameof(argTypeID).data()
+		);
+	}
 
 	if (rst.GetID().Is<void>())
 		return 0;
@@ -936,56 +835,56 @@ static int f_Ptr_binary_operator(lua_State* L_) {
 
 static const struct luaL_Reg lib_StrID[] = {
 	"new"     , f_ID_new<StrID>,
-	"GetValue", details::wrap<&StrID::GetValue, StrID>(),
-	"Valid"   , details::wrap<&StrID::Valid,    StrID>(),
-	"Is"      , details::wrap<&StrID::Is,       StrID>(),
+	"GetValue", details::wrap<&StrID::GetValue, StrID>(TSTR("GetValue")),
+	"Valid"   , details::wrap<&StrID::Valid,    StrID>(TSTR("Valid"   )),
+	"Is"      , details::wrap<&StrID::Is,       StrID>(TSTR("Is"      )),
 	NULL      , NULL
 };
 
 static const struct luaL_Reg lib_TypeID[] = {
 	"new"     , f_ID_new<TypeID>,
-	"GetValue", details::wrap<&TypeID::GetValue, TypeID>(),
-	"Valid"   , details::wrap<&TypeID::Valid,    TypeID>(),
-	"Is"      , details::wrap<&IDBase::Is,       TypeID>(),
+	"GetValue", details::wrap<&TypeID::GetValue, TypeID>(TSTR("GetValue")),
+	"Valid"   , details::wrap<&TypeID::Valid,    TypeID>(TSTR("Valid")),
+	"Is"      , details::wrap<&IDBase::Is,       TypeID>(TSTR("Is")),
 	NULL      , NULL
 };
 
 static const struct luaL_Reg lib_ConstObjectPtr[] = {
 	"new"     , f_Ptr_new<UDRefl::ConstObjectPtr>,
-	"GetID"   , details::wrap<&UDRefl::ConstObjectPtr::GetID,    UDRefl::ConstObjectPtr>(),
-	"Valid"   , details::wrap<&UDRefl::ConstObjectPtr::Valid,    UDRefl::ConstObjectPtr>(),
-	"GetType" , details::wrap<&UDRefl::ConstObjectPtr::GetType,  UDRefl::ConstObjectPtr>(),
-	"TypeName", details::wrap<&UDRefl::ConstObjectPtr::TypeName, UDRefl::ConstObjectPtr>(),
+	"GetID"   , details::wrap<&UDRefl::ConstObjectPtr::GetID,    UDRefl::ConstObjectPtr>(TSTR("GetID")),
+	"Valid"   , details::wrap<&UDRefl::ConstObjectPtr::Valid,    UDRefl::ConstObjectPtr>(TSTR("Valid")),
+	"GetType" , details::wrap<&UDRefl::ConstObjectPtr::GetType,  UDRefl::ConstObjectPtr>(TSTR("GetType")),
+	"TypeName", details::wrap<&UDRefl::ConstObjectPtr::TypeName, UDRefl::ConstObjectPtr>(TSTR("TypeName")),
 	"AsNumber", f_CPtr_AsNumber<UDRefl::ConstObjectPtr>,
 	NULL      , NULL
 };
 
 static const struct luaL_Reg lib_ObjectPtr[] = {
 	"new"     , f_Ptr_new<UDRefl::ObjectPtr>,
-	"GetID"   , details::wrap<&UDRefl::ObjectPtr::GetID,    UDRefl::ObjectPtr>(),
-	"Valid"   , details::wrap<&UDRefl::ObjectPtr::Valid,    UDRefl::ObjectPtr>(),
-	"GetType" , details::wrap<&UDRefl::ObjectPtr::GetType,  UDRefl::ObjectPtr>(),
-	"TypeName", details::wrap<&UDRefl::ObjectPtr::TypeName, UDRefl::ObjectPtr>(),
+	"GetID"   , details::wrap<&UDRefl::ObjectPtr::GetID,    UDRefl::ObjectPtr>(TSTR("GetID")),
+	"Valid"   , details::wrap<&UDRefl::ObjectPtr::Valid,    UDRefl::ObjectPtr>(TSTR("Valid")),
+	"GetType" , details::wrap<&UDRefl::ObjectPtr::GetType,  UDRefl::ObjectPtr>(TSTR("GetType")),
+	"TypeName", details::wrap<&UDRefl::ObjectPtr::TypeName, UDRefl::ObjectPtr>(TSTR("TypeName")),
 	"AsNumber", f_CPtr_AsNumber<UDRefl::ObjectPtr>,
 	NULL      , NULL
 };
 
 static const struct luaL_Reg lib_SharedConstObject[] = {
 	"new"        , f_Ptr_new<UDRefl::SharedConstObject>,
-	"GetID"      , details::wrap<&UDRefl::SharedConstObject::GetID,       UDRefl::SharedConstObject>(),
-	"Valid"      , details::wrap<&UDRefl::SharedConstObject::Valid,       UDRefl::SharedConstObject>(),
-	"AsObjectPtr", details::wrap<&UDRefl::SharedConstObject::AsObjectPtr, UDRefl::SharedConstObject>(),
+	"GetID"      , details::wrap<&UDRefl::SharedConstObject::GetID,       UDRefl::SharedConstObject>(TSTR("GetID")),
+	"Valid"      , details::wrap<&UDRefl::SharedConstObject::Valid,       UDRefl::SharedConstObject>(TSTR("Valid")),
+	"AsObjectPtr", details::wrap<&UDRefl::SharedConstObject::AsObjectPtr, UDRefl::SharedConstObject>(TSTR("GetType")),
 	"AsNumber"   , f_CPtr_AsNumber<UDRefl::SharedConstObject>,
 	NULL         , NULL
 };
 
 static const struct luaL_Reg lib_SharedObject[] = {
 	"new"                , f_Ptr_new<UDRefl::SharedObject>,
-	"GetID"              , details::wrap<&UDRefl::SharedObject::GetID,               UDRefl::SharedObject>(),
-	"Valid"              , details::wrap<&UDRefl::SharedObject::Valid,               UDRefl::SharedObject>(),
-	"AsSharedConstObject", details::wrap<&UDRefl::SharedObject::AsSharedConstObject, UDRefl::SharedObject>(),
-	"AsObjectPtr"        , details::wrap<&UDRefl::SharedObject::AsObjectPtr,         UDRefl::SharedObject>(),
-	"AsConstObjectPtr"   , details::wrap<&UDRefl::SharedObject::AsConstObjectPtr,    UDRefl::SharedObject>(),
+	"GetID"              , details::wrap<&UDRefl::SharedObject::GetID,               UDRefl::SharedObject>(TSTR("GetID")),
+	"Valid"              , details::wrap<&UDRefl::SharedObject::Valid,               UDRefl::SharedObject>(TSTR("Valid")),
+	"AsSharedConstObject", details::wrap<&UDRefl::SharedObject::AsSharedConstObject, UDRefl::SharedObject>(TSTR("AsSharedConstObject")),
+	"AsObjectPtr"        , details::wrap<&UDRefl::SharedObject::AsObjectPtr,         UDRefl::SharedObject>(TSTR("AsObjectPtr")),
+	"AsConstObjectPtr"   , details::wrap<&UDRefl::SharedObject::AsConstObjectPtr,    UDRefl::SharedObject>(TSTR("AsConstObjectPtr")),
 	"AsNumber"           , f_CPtr_AsNumber<UDRefl::SharedObject>,
 	NULL                 , NULL
 };
