@@ -10,34 +10,34 @@ using namespace Ubpa;
 
 namespace Ubpa::details {
 	namespace Meta {
-		static constexpr auto add = TSTR("add");
-		static constexpr auto band = TSTR("band");
-		static constexpr auto bnot = TSTR("bnot");
-		static constexpr auto bor = TSTR("bor");
-		static constexpr auto bxor = TSTR("bxor");
-		static constexpr auto call = TSTR("call");
-		static constexpr auto concat = TSTR("concat");
-		static constexpr auto div = TSTR("div");
-		static constexpr auto eq = TSTR("eq");
-		static constexpr auto gc = TSTR("gc");
-		static constexpr auto idiv = TSTR("idiv");
-		static constexpr auto index = TSTR("index");
-		static constexpr auto le = TSTR("le");
-		static constexpr auto len = TSTR("len");
-		static constexpr auto lt = TSTR("lt");
-		static constexpr auto metatable = TSTR("metatable");
-		static constexpr auto mod = TSTR("mod");
-		static constexpr auto mode = TSTR("mode");
-		static constexpr auto mul = TSTR("mul");
-		static constexpr auto name = TSTR("name");
-		static constexpr auto newindex = TSTR("newindex");
-		static constexpr auto pairs = TSTR("pairs");
-		static constexpr auto pow = TSTR("pow");
-		static constexpr auto shl = TSTR("shl");
-		static constexpr auto shr = TSTR("shr");
-		static constexpr auto sub = TSTR("sub");
-		static constexpr auto tostring = TSTR("tostring");
-		static constexpr auto unm = TSTR("unm");
+		static constexpr auto add = TSTR("__add");
+		static constexpr auto band = TSTR("__band");
+		static constexpr auto bnot = TSTR("__bnot");
+		static constexpr auto bor = TSTR("__bor");
+		static constexpr auto bxor = TSTR("__bxor");
+		static constexpr auto call = TSTR("__call");
+		static constexpr auto concat = TSTR("__concat");
+		static constexpr auto div = TSTR("__div");
+		static constexpr auto eq = TSTR("__eq");
+		static constexpr auto gc = TSTR("__gc");
+		static constexpr auto idiv = TSTR("__idiv");
+		static constexpr auto index = TSTR("__index");
+		static constexpr auto le = TSTR("__le");
+		static constexpr auto len = TSTR("__len");
+		static constexpr auto lt = TSTR("__lt");
+		static constexpr auto metatable = TSTR("__metatable");
+		static constexpr auto mod = TSTR("__mod");
+		static constexpr auto mode = TSTR("__mode");
+		static constexpr auto mul = TSTR("__mul");
+		static constexpr auto name = TSTR("__name");
+		static constexpr auto newindex = TSTR("__newindex");
+		static constexpr auto pairs = TSTR("__pairs");
+		static constexpr auto pow = TSTR("__pow");
+		static constexpr auto shl = TSTR("__shl");
+		static constexpr auto shr = TSTR("__shr");
+		static constexpr auto sub = TSTR("__sub");
+		static constexpr auto tostring = TSTR("__tostring");
+		static constexpr auto unm = TSTR("__unm");
 
 		using t_add = decltype(add);
 		using t_band = decltype(band);
@@ -70,11 +70,12 @@ namespace Ubpa::details {
 	}
 
 	namespace CppMeta {
-		static constexpr auto deref = TSTR("deref");
-		static constexpr auto pre_inc = TSTR("pre_inc");
-		static constexpr auto pre_dec = TSTR("pre_dec");
-		static constexpr auto post_inc = TSTR("post_inc");
-		static constexpr auto post_dec = TSTR("post_dec");
+		static constexpr auto op_assign = TSTR("__assign");
+		static constexpr auto op_deref = TSTR("__deref");
+		static constexpr auto op_pre_inc = TSTR("__pre_inc");
+		static constexpr auto op_pre_dec = TSTR("__pre_dec");
+		static constexpr auto op_post_inc = TSTR("__post_inc");
+		static constexpr auto op_post_dec = TSTR("__post_dec");
 
 		static constexpr auto tuple_size = TSTR("tuple_size");
 		static constexpr auto tuple_get = TSTR("tuple_get");
@@ -122,11 +123,12 @@ namespace Ubpa::details {
 		static constexpr auto key_eq = TSTR("key_eq");
 		static constexpr auto get_allocator = TSTR("get_allocator");
 
-		using t_deref = decltype(deref);
-		using t_pre_inc = decltype(pre_inc);
-		using t_pre_dec = decltype(pre_dec);
-		using t_post_inc = decltype(post_inc);
-		using t_post_dec = decltype(post_dec);
+		using t_op_assign = decltype(op_assign);
+		using t_op_deref = decltype(op_deref);
+		using t_op_pre_inc = decltype(op_pre_inc);
+		using t_op_pre_dec = decltype(op_pre_dec);
+		using t_op_post_inc = decltype(op_post_inc);
+		using t_op_post_dec = decltype(op_post_dec);
 
 		using t_tuple_size = decltype(tuple_size);
 		using t_tuple_get = decltype(tuple_get);
@@ -174,7 +176,26 @@ namespace Ubpa::details {
 		using t_key_eq = decltype(key_eq);
 		using t_get_allocator = decltype(get_allocator);
 	}
+
+	template<typename T>
+	struct LibName;
 }
+template<>
+struct Ubpa::details::LibName<UDRefl::ObjectPtr> {
+	static constexpr const char value[] = "ObjectPtr";
+};
+template<>
+struct Ubpa::details::LibName<UDRefl::ConstObjectPtr> {
+	static constexpr const char value[] = "ConstObjectPtr";
+};
+template<>
+struct Ubpa::details::LibName<UDRefl::SharedObject> {
+	static constexpr const char value[] = "SharedObject";
+};
+template<>
+struct Ubpa::details::LibName<UDRefl::SharedConstObject> {
+	static constexpr const char value[] = "SharedConstObject";
+};
 
 namespace Ubpa::details {
 	struct CallHandle {
@@ -332,13 +353,13 @@ static int f_meta(lua_State * L_) {
 	int L_argnum = L.gettop();
 	if constexpr (LArgNum != -1) {
 		if (L_argnum != LArgNum) {
-			return L.error("%s::__%s : The number of arguments is invalid. The function needs %d argument.",
+			return L.error("%s::%s : The number of arguments is invalid. The function needs %d argument.",
 				type_name<Functor>().Data(), MetaName::Data(), LArgNum);
 		}
 	}
 	else {
 		if (L_argnum <= 0) {
-			return L.error("%s::__%s : The number of arguments is invalid. The function needs >= 1 argument.",
+			return L.error("%s::%s : The number of arguments is invalid. The function needs >= 1 argument.",
 				type_name<Functor>().Data(), MetaName::Data());
 		}
 	}
@@ -393,7 +414,7 @@ static int f_meta(lua_State * L_) {
 	}
 
 	if (argnum > UDRefl::MaxArgNum) {
-		return L.error("%s::__%s : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
+		return L.error("%s::%s : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
 			type_name<Functor>().Data(), MetaName::Data(), argnum, static_cast<int>(UDRefl::MaxArgNum));
 	}
 
@@ -475,7 +496,7 @@ static int f_meta(lua_State * L_) {
 			}
 			break;
 		default:
-			return L.error("%s::__%s : The function doesn't support %s.",
+			return L.error("%s::%s : The function doesn't support %s.",
 				type_name<Functor>().Data(),
 				MetaName::Data(),
 				L.typename_(arg)
@@ -484,9 +505,9 @@ static int f_meta(lua_State * L_) {
 	}
 
 	if constexpr (ExplictRet) {
-		auto invocable_rst = ptr->IsInvokable(methodID, std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)});
+		auto invocable_rst = ptr->IsInvocable(methodID, std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)});
 		if (!invocable_rst || invocable_rst.result_desc.typeID != TypeID_of<Ret>) {
-			return L.error("%s::__%s : The function isn't invocable with arguments or it's return type isn't %s.",
+			return L.error("%s::%s : The function isn't invocable with arguments or it's return type isn't %s.",
 				type_name<Functor>().Data(),
 				MetaName::Data(),
 				type_name<Ret>().Data()
@@ -521,7 +542,7 @@ static int f_meta(lua_State * L_) {
 		);
 
 		if (!rst.GetID().Valid()) {
-			return L.error("%s::__%s : The function isn't invocable with arguments.",
+			return L.error("%s::%s : The function isn't invocable with arguments.",
 				type_name<Functor>().Data(),
 				MetaName::Data()
 			);
@@ -530,44 +551,10 @@ static int f_meta(lua_State * L_) {
 		if (rst.GetID().Is<void>())
 			return 0;
 
-		if constexpr (ToType == TypeID_of<bool>.GetValue())
-			L.pushboolean(static_cast<bool>(rst));
-		else if constexpr (ToType == TypeID_of<UDRefl::ObjectPtr>.GetValue()) {
-			if (rst.GetID().Is<UDRefl::ObjectPtr>()) {
-				void* buffer = L.newuserdata(sizeof(UDRefl::ObjectPtr));
-				new(buffer)UDRefl::ObjectPtr{ rst.As<UDRefl::ObjectPtr>() };
-				L.getmetatable(type_name<UDRefl::ObjectPtr>().Data());
-				L.setmetatable(-2);
-			}
-			else {
-				return L.error("%s::__%s : The result can't convert to %s.",
-					type_name<Functor>().Data(),
-					MetaName::Data(),
-					type_name<UDRefl::ObjectPtr>().Data()
-				);
-			}
-		}
-		else if constexpr (ToType == TypeID_of<UDRefl::ConstObjectPtr>.GetValue()) {
-			if (rst.GetID().Is<UDRefl::ConstObjectPtr>()) {
-				void* buffer = L.newuserdata(sizeof(UDRefl::ConstObjectPtr));
-				new(buffer)UDRefl::ConstObjectPtr{ rst.As<UDRefl::ConstObjectPtr>() };
-				L.getmetatable(type_name<UDRefl::ConstObjectPtr>().Data());
-				L.setmetatable(-2);
-			}
-			else {
-				return L.error("%s::__%s : The result can't convert to %s.",
-					type_name<Functor>().Data(),
-					MetaName::Data(),
-					type_name<UDRefl::ConstObjectPtr>().Data()
-				);
-			}
-		}
-		else {
-			void* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
-			new(buffer)UDRefl::SharedObject{ std::move(rst) };
-			L.getmetatable(type_name<UDRefl::SharedObject>().Data());
-			L.setmetatable(-2);
-		}
+		void* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
+		new(buffer)UDRefl::SharedObject{ std::move(rst) };
+		L.getmetatable(type_name<UDRefl::SharedObject>().Data());
+		L.setmetatable(-2);
 
 		return 1;
 	}
@@ -798,121 +785,36 @@ static int f_Ptr_index(lua_State* L_) {
 template<typename Ptr>
 static int f_Ptr_newindex(lua_State* L_) {
 	LuaStateView L{ L_ };
-
 	if (L.gettop() != 3) {
 		return L.error("%s::__newindex : The number of arguments is invalid. The function needs 3 argument (object, key, value).",
 			type_name<Ptr>().Data());
 	}
 
-	auto ptr = static_cast<UDRefl::ObjectPtr>(*(Ptr*)L.checkudata(1, type_name<Ptr>().Data()));
-
-	if (!ptr.Valid())
-		return L.error("%s::__newindex : The object is nil.", type_name<Ptr>().Data());
-	
-	size_t len;
-	const char* key = L.checklstring(2, &len);
-	std::string_view key_sv{ key, len };
-	UDRefl::ObjectPtr member = key_sv == "this" ? ptr : ptr.RWVar(key_sv);
-
-	if (!member.Valid()) {
-		std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr.DereferenceAsConst().GetID());
-		return L.error("%s::__newindex : %s not contain writable %s.",
-			type_name<Ptr>().Data(),
-			tname.data(),
-			key);
-	}
-
-	int type = L.type(-1);
-	switch (type)
+	// stack : ptr, key, value
+	L.getmetatable(type_name<UDRefl::ObjectPtr>().Data());
+	L.getmetatable(type_name<Ptr>().Data());
+	L.getfield(-2, details::CppMeta::op_assign.Data());
+	L.getfield(-2, details::Meta::index.Data());
+	L.rotate(1, -2);
+	// stack : value, ..., __assign, __index, ptr, key
 	{
-	case LUA_TBOOLEAN:
-		if (!member.IsInvocable<const bool&>(UDRefl::StrIDRegistry::MetaID::operator_assign)) {
-			std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr.DereferenceAsConst().GetID());
-			return L.error("%s::__newindex : %s::%s can't be assign with bool.",
-				type_name<Ptr>().Data(),
-				tname.data(),
-				key);
+		int error = L.pcall(2, 1, 0);
+		if (error) {
+			return L.error("%s::__newindex::__index: %s",
+				type_name<Ptr>().Data(), L.tostring(-1));
 		}
-		member = static_cast<const bool&>(L.toboolean(-1));
-		break;
-	case LUA_TNUMBER:
-		if (L.isinteger(-1)) {
-			if (!member.IsInvocable<const lua_Integer&>(UDRefl::StrIDRegistry::MetaID::operator_assign)) {
-				std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr.DereferenceAsConst().GetID());
-				return L.error("%s::__newindex : %s::%s can't be assign with lua_Integer.",
-					type_name<Ptr>().Data(),
-					tname.data(),
-					key);
-			}
-			member = static_cast<const lua_Integer&>(L.tointeger(-1));
-		}
-		else if (L.isnumber(-1)) {
-			if (!member.IsInvocable<const lua_Number&>(UDRefl::StrIDRegistry::MetaID::operator_assign)) {
-				std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr.DereferenceAsConst().GetID());
-				return L.error("%s::__newindex : %s::%s can't be assign with lua_Number.",
-					type_name<Ptr>().Data(),
-					tname.data(),
-					key);
-			}
-			member = static_cast<const lua_Number&>(L.tonumber(-1));
-		}
-		else
-			assert(false);
-		break;
-	case LUA_TUSERDATA:
-		if (void* udata = L.testudata(-1, type_name<UDRefl::ConstObjectPtr>().Data())) {
-			const auto& rhs = *static_cast<UDRefl::ConstObjectPtr*>(udata);
-			member.AInvoke<void>(UDRefl::StrIDRegistry::MetaID::operator_assign, rhs);
-		}
-		else if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectPtr>().Data())) {
-			const auto& rhs = *static_cast<UDRefl::ObjectPtr*>(udata);
-			member.AInvoke<void>(UDRefl::StrIDRegistry::MetaID::operator_assign, rhs);
-		}
-		else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedConstObject>().Data())) {
-			const auto& rhs = *static_cast<UDRefl::SharedConstObject*>(udata);
-			member.AInvoke<void>(UDRefl::StrIDRegistry::MetaID::operator_assign, rhs);
-		}
-		else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
-			const auto& rhs = *static_cast<UDRefl::SharedObject*>(udata);
-			member.AInvoke<void>(UDRefl::StrIDRegistry::MetaID::operator_assign, rhs);
-		}
-		else if (!L.getmetatable(-1)) {
-			if (!member.IsInvocable<void*>(UDRefl::StrIDRegistry::MetaID::operator_assign)) {
-				std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr.DereferenceAsConst().GetID());
-				return L.error("%s::__newindex : %s::%s can't be assign with void*.",
-					type_name<Ptr>().Data(),
-					tname.data(),
-					key);
-			}
-			member = L.touserdata(-1);
-		}
-		break;
-	case LUA_TSTRING:
-		if (member.IsInvocable<const char*>(UDRefl::StrIDRegistry::MetaID::operator_assign))
-			member = L.tostring(-1);
-		else if (member.IsInvocable<std::string_view>(UDRefl::StrIDRegistry::MetaID::operator_assign)) {
-			size_t len;
-			const char* str = L.tolstring(-1, &len);
-			member = std::string_view{ str, len };
-		}
-		else if (member.IsInvocable<std::string>(UDRefl::StrIDRegistry::MetaID::operator_assign)) {
-			size_t len;
-			const char* str = L.tolstring(-1, &len);
-			member = std::string{ str, len };
-		}
-		else {
-			std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr.DereferenceAsConst().GetID());
-			return L.error("%s::__newindex : %s::%s can't be assign with a string.",
-				type_name<Ptr>().Data(),
-				tname.data(),
-				key);
-		}
-		break;
-	default:
-		break;
 	}
-
-	return 0;
+	// stack : value, ..., __assign, __index result (member ptr)
+	L.rotate(1, -1);
+	// stack : ..., __assign, __index result (member ptr), value
+	{
+		int error = L.pcall(2, 1, 0);
+		if (error) {
+			return L.error("%s::__newindex::__assign: %s",
+				type_name<Ptr>().Data(), L.tostring(-1));
+		}
+	}
+	return 1;
 }
 
 static const struct luaL_Reg lib_StrID[] = {
@@ -969,11 +871,12 @@ static const struct luaL_Reg meta_ConstObjectPtr[] = {
 	"__sub", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_sub, UDRefl::StrIDRegistry::MetaID::operator_sub.GetValue(), 2>,
 	"__unm", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_unm, UDRefl::StrIDRegistry::MetaID::operator_minus.GetValue(), 2>,
 
-	"__deref", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
-	"__pre_inc", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
-	"__pre_dec", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
+	"__assign",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_assign, UDRefl::StrIDRegistry::MetaID::operator_assign.GetValue(), 2>,
+	"__deref", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
+	"__pre_inc", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
+	"__pre_dec", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
+	"__post_inc", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
+	"__post_dec", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
 
 	"tuple_size",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_tuple_size, UDRefl::StrIDRegistry::MetaID::tuple_size.GetValue(), 1, true, std::size_t>,
 	"tuple_get",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_tuple_get, UDRefl::StrIDRegistry::MetaID::tuple_get.GetValue(), 2, true, UDRefl::ConstObjectPtr>,
@@ -1021,7 +924,7 @@ static const struct luaL_Reg meta_ObjectPtr[] = {
 	"AsNumber", f_CPtr_AsNumber<UDRefl::ObjectPtr>,
 
 	"__index", &f_Ptr_index<UDRefl::ObjectPtr>,
-	"__newidex",& f_Ptr_newindex<UDRefl::ObjectPtr>,
+	"__newindex",& f_Ptr_newindex<UDRefl::ObjectPtr>,
 	"__tostring", &f_CPtr_tostring<UDRefl::ObjectPtr>,
 	"__call", &f_meta<UDRefl::ObjectPtr, details::Meta::t_call, UDRefl::StrIDRegistry::MetaID::operator_call.GetValue()>,
 	"__add", &f_meta<UDRefl::ObjectPtr, details::Meta::t_add, UDRefl::StrIDRegistry::MetaID::operator_add.GetValue(), 2>,
@@ -1040,11 +943,12 @@ static const struct luaL_Reg meta_ObjectPtr[] = {
 	"__sub", &f_meta<UDRefl::ObjectPtr, details::Meta::t_sub, UDRefl::StrIDRegistry::MetaID::operator_sub.GetValue(), 2>,
 	"__unm", &f_meta<UDRefl::ObjectPtr, details::Meta::t_unm, UDRefl::StrIDRegistry::MetaID::operator_minus.GetValue(), 2>,
 
-	"__deref", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
-	"__pre_inc", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
-	"__pre_dec", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
+	"__assign",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_assign, UDRefl::StrIDRegistry::MetaID::operator_assign.GetValue(), 2>,
+	"__deref", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
+	"__pre_inc", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
+	"__pre_dec", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
+	"__post_inc", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
+	"__post_dec", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
 
 	"tuple_size",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_tuple_size, UDRefl::StrIDRegistry::MetaID::tuple_size.GetValue(), 1, true, std::size_t>,
 	"tuple_get",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_tuple_get, UDRefl::StrIDRegistry::MetaID::tuple_get.GetValue(), 2, true, UDRefl::ObjectPtr>,
@@ -1125,11 +1029,12 @@ static const struct luaL_Reg meta_SharedConstObject[] = {
 	"__sub",&f_meta<UDRefl::SharedConstObject, details::Meta::t_sub, UDRefl::StrIDRegistry::MetaID::operator_sub.GetValue(), 2>,
 	"__unm", &f_meta<UDRefl::SharedConstObject, details::Meta::t_unm, UDRefl::StrIDRegistry::MetaID::operator_minus.GetValue(), 2>,
 
-	"__deref", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
-	"__pre_inc", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
-	"__pre_dec", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
+	"__assign",& f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_assign, UDRefl::StrIDRegistry::MetaID::operator_assign.GetValue(), 2>,
+	"__deref", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
+	"__pre_inc", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
+	"__pre_dec", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
+	"__post_inc", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
+	"__post_dec", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
 
 	NULL         , NULL
 };
@@ -1149,7 +1054,7 @@ static const struct luaL_Reg meta_SharedObject[] = {
 
 	"__gc", details::wrap_dtor<UDRefl::SharedObject>(),
 	"__index", &f_Ptr_index<UDRefl::SharedObject>,
-	"__newidex",&f_Ptr_newindex<UDRefl::SharedObject>,
+	"__newindex",&f_Ptr_newindex<UDRefl::SharedObject>,
 	"__tostring", &f_CPtr_tostring<UDRefl::SharedObject>,
 	"__call", &f_meta<UDRefl::SharedObject, details::Meta::t_call, UDRefl::StrIDRegistry::MetaID::operator_call.GetValue()>,
 	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, UDRefl::StrIDRegistry::MetaID::operator_add.GetValue(), 2>,
@@ -1168,11 +1073,12 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"__sub",&f_meta<UDRefl::SharedObject, details::Meta::t_sub, UDRefl::StrIDRegistry::MetaID::operator_sub.GetValue(), 2>,
 	"__unm", &f_meta<UDRefl::SharedObject, details::Meta::t_unm, UDRefl::StrIDRegistry::MetaID::operator_minus.GetValue(), 2>,
 
-	"__deref", &f_meta<UDRefl::SharedObject, details::CppMeta::t_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
-	"__pre_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
-	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
+	"__assign",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_assign, UDRefl::StrIDRegistry::MetaID::operator_assign.GetValue(), 2>,
+	"__deref", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
+	"__pre_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
+	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
+	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
+	"__post_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
 
 	NULL                 , NULL
 };
@@ -1373,10 +1279,10 @@ static int luaopen_ReflMngr(lua_State* L_) {
 static const luaL_Reg UDRefl_libs[] = {
   {"StrID"            , luaopen_StrID},
   {"TypeID"           , luaopen_TypeID},
-  {"ConstObjectPtr"   , luaopen_ConstObjectPtr},
-  {"ObjectPtr"        , luaopen_ObjectPtr},
-  {"SharedConstObject", luaopen_SharedConstObject},
-  {"SharedObject"     , luaopen_SharedObject},
+  {details::LibName<UDRefl::ConstObjectPtr   >::value, luaopen_ConstObjectPtr},
+  {details::LibName<UDRefl::ObjectPtr        >::value, luaopen_ObjectPtr},
+  {details::LibName<UDRefl::SharedConstObject>::value, luaopen_SharedConstObject},
+  {details::LibName<UDRefl::SharedObject     >::value, luaopen_SharedObject},
   {"ReflMngr"         , luaopen_ReflMngr},
   {NULL               , NULL}
 };
