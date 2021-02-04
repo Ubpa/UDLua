@@ -242,7 +242,7 @@ namespace Ubpa::details {
 	}
 
 	template<typename Ret>
-	void push_rst(LuaStateView L, Ret rst) {
+	void push(LuaStateView L, Ret rst) {
 		if constexpr (std::is_reference_v<Ret>)
 			static_assert(always_false<Ret>);
 		else if constexpr (std::is_integral_v<Ret>) {
@@ -286,7 +286,7 @@ namespace Ubpa::details {
 			(obj->*funcptr)(get_arg<At_t<ArgList, Ns>>(L, 2 + Ns)...);
 		else {
 			auto ret = (obj->*funcptr)(get_arg<At_t<ArgList, Ns>>(L, 2 + Ns)...);
-			push_rst<Ret>(L, std::forward<Ret>(ret));
+			push<Ret>(L, std::forward<Ret>(ret));
 		}
 	};
 
@@ -300,7 +300,7 @@ namespace Ubpa::details {
 			funcptr(get_arg<At_t<ArgList, Ns>>(L, 1 + Ns)...);
 		else {
 			auto ret = funcptr(get_arg<At_t<ArgList, Ns>>(L, 1 + Ns)...);
-			push_rst<Ret>(L, std::forward<Ret>(ret));
+			push<Ret>(L, std::forward<Ret>(ret));
 		}
 	};
 
@@ -529,7 +529,7 @@ static int f_meta(lua_State * L_) {
 				static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
 			);
 
-			details::push_rst<Ret>(L, std::move(rst));
+			details::push<Ret>(L, std::move(rst));
 
 			return 1;
 		}
@@ -660,7 +660,6 @@ static int f_CPtr_AsNumber(lua_State* L_) {
 		L.pushnumber(value);
 	}
 	else {
-		
 		return L.error("%s::AsNumber : The type (%s) can't convert to a number.",
 			type_name<CPtr>().Data(),
 			tname.data());
@@ -817,6 +816,74 @@ static int f_Ptr_newindex(lua_State* L_) {
 	return 1;
 }
 
+template<typename Ptr>
+static int f_range_next(lua_State* L_) {
+	LuaStateView L{ L_ };
+	if (L.gettop() != 2) {
+		return L.error("range_next : The number of arguments is invalid. The function needs 2 argument (end_iter, iter).");
+	}
+
+	const auto& ptr = *(Ptr*)L.checkudata(1, type_name<Ptr>().Data());
+	UDRefl::SharedObject end_iter = ptr->end();
+
+	if (!end_iter.Valid()) {
+		std::string_view tname = ptr->TypeName();
+		return L.error("range_next : The type (%s) can't invoke end.",
+			type_name<Ptr>().Data(),
+			tname.data());
+	}
+
+	int type = L.type(2);
+	switch (type)
+	{
+	case LUA_TNIL:
+	{
+		UDRefl::SharedObject iter = ptr->begin();
+		if (!iter.Valid()) {
+			std::string_view tname = ptr->TypeName();
+			return L.error("range_next : The type (%s) can't invoke begin.",
+				type_name<Ptr>().Data(),
+				tname.data());
+		}
+		if (iter == end_iter)
+			L.pushnil();
+		else
+			details::push<UDRefl::SharedObject>(L, std::move(iter));
+		return 1;
+	}
+	case LUA_TUSERDATA:
+	{
+		const auto& iter = *(UDRefl::SharedObject*)L.checkudata(2, type_name<UDRefl::SharedObject>().Data());
+		UDRefl::SharedObject rst = ++iter;
+		if (!rst.Valid()) {
+			std::string_view tname = iter->TypeName();
+			return L.error("range_next : The type (%s) can't invoke operator++().",
+				type_name<Ptr>().Data(),
+				tname.data());
+		}
+		if (iter == end_iter)
+			L.pushnil();
+		return 1; // stack top is the iter / nil
+	}
+	default:
+		return L.error("range_next : The second arguments must be a nil/iter.");
+	}
+}
+
+template<typename Ptr>
+static int f_Ptr_range(lua_State* L_) {
+	LuaStateView L{ L_ };
+	if (L.gettop() != 1) {
+		return L.error("%s::range : The number of arguments is invalid. The function needs 1 argument (obj).",
+			type_name<Ptr>().Data());
+	}
+	L.checkudata(1, type_name<Ptr>().Data());
+	L.pushcfunction(&f_range_next<Ptr>);
+	L.pushvalue(1);
+	L.pushnil();
+	return 3;
+}
+
 static const struct luaL_Reg lib_StrID[] = {
 	"new", f_ID_new<StrID>,
 	NULL , NULL
@@ -908,6 +975,8 @@ static const struct luaL_Reg meta_ConstObjectPtr[] = {
 	"key_eq",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_key_eq, UDRefl::StrIDRegistry::MetaID::container_key_eq.GetValue(), 1>,
 	"get_allocator",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_get_allocator, UDRefl::StrIDRegistry::MetaID::container_get_allocator.GetValue(), 1>,
 
+	"range", f_Ptr_range<UDRefl::ConstObjectPtr>,
+
 	NULL      , NULL
 };
 
@@ -996,6 +1065,8 @@ static const struct luaL_Reg meta_ObjectPtr[] = {
 	"key_eq",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_key_eq, UDRefl::StrIDRegistry::MetaID::container_key_eq.GetValue(), 1>,
 	"get_allocator",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_get_allocator, UDRefl::StrIDRegistry::MetaID::container_get_allocator.GetValue(), 1>,
 
+	"range", f_Ptr_range<UDRefl::ObjectPtr>,
+
 	NULL      , NULL
 };
 
@@ -1035,6 +1106,8 @@ static const struct luaL_Reg meta_SharedConstObject[] = {
 	"__pre_dec", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
 	"__post_inc", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
 	"__post_dec", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
+
+	"range", f_Ptr_range<UDRefl::SharedConstObject>,
 
 	NULL         , NULL
 };
@@ -1079,6 +1152,8 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
 	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
 	"__post_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
+
+	"range", f_Ptr_range<UDRefl::SharedObject>,
 
 	NULL                 , NULL
 };
