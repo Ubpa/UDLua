@@ -382,18 +382,7 @@ namespace Ubpa::details {
 		using t_container_key_eq = decltype(container_key_eq);
 		using t_container_get_allocator = decltype(container_get_allocator);
 	}
-
-	template<typename T>
-	struct LibName;
 }
-template<>
-struct Ubpa::details::LibName<UDRefl::ObjectView> {
-	static constexpr const char value[] = "ObjectView";
-};
-template<>
-struct Ubpa::details::LibName<UDRefl::SharedObject> {
-	static constexpr const char value[] = "SharedObject";
-};
 
 namespace Ubpa::details {
 	struct CallHandle {
@@ -635,8 +624,8 @@ static int f_meta(lua_State * L_) {
 			argptr_buffer[i] = arg_buffer;
 			argType_buffer[i] = Type_of<bool>;
 			UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
+			break;
 		}
-		break;
 		case LUA_TNUMBER:
 			if (L.isinteger(arg)) {
 				auto arg_buffer = &copied_args_buffer[num_copied_args++];
@@ -653,10 +642,14 @@ static int f_meta(lua_State * L_) {
 			else
 				assert(false);
 			break;
-		//	// TODO
-		//case LUA_TSTRING:
-		//	assert(false);
-		//	break;
+		case LUA_TSTRING:
+		{
+			auto arg_buffer = &copied_args_buffer[num_copied_args++];
+			argptr_buffer[i] = arg_buffer;
+			argType_buffer[i] = Type_of<const char*>;
+			UDRefl::buffer_as<const char*>(arg_buffer) = L.tostring(arg);
+			break;
+		}
 		case LUA_TUSERDATA:
 			if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectView>().Data())) {
 				const auto& rhs = *static_cast<UDRefl::ObjectView*>(udata);
@@ -1274,8 +1267,8 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 			argptr_buffer[i] = arg_buffer;
 			argType_buffer[i] = Type_of<bool>;
 			UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
+			break;
 		}
-		break;
 		case LUA_TNUMBER:
 			if (L.isinteger(arg)) {
 				auto arg_buffer = &copied_args_buffer[num_copied_args++];
@@ -1293,8 +1286,13 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 				assert(false);
 			break;
 		case LUA_TSTRING:
-			assert(false); // TODO
+		{
+			auto arg_buffer = &copied_args_buffer[num_copied_args++];
+			argptr_buffer[i] = arg_buffer;
+			argType_buffer[i] = Type_of<const char*>;
+			UDRefl::buffer_as<const char*>(arg_buffer) = L.tostring(arg);
 			break;
+		}
 		case LUA_TUSERDATA:
 			if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectView>().Data())) {
 				UDRefl::ObjectView arg = *static_cast<UDRefl::ObjectView*>(udata);
@@ -1399,10 +1397,10 @@ static int luaopen_ReflMngr(lua_State* L_) {
 static const luaL_Reg UDRefl_libs[] = {
   {"Name", luaopen_Name},
   {"Type", luaopen_Type},
-  {details::LibName<UDRefl::ObjectView>::value, luaopen_ObjectView},
-  {details::LibName<UDRefl::SharedObject>::value, luaopen_SharedObject},
-  {"ReflMngr"         , luaopen_ReflMngr},
-  {NULL               , NULL}
+  {"ObjectView", luaopen_ObjectView},
+  {"SharedObject", luaopen_SharedObject},
+  {"ReflMngr", luaopen_ReflMngr},
+  {NULL, NULL}
 };
 
 void luaopen_UDRefl_libs(lua_State* L_) {
