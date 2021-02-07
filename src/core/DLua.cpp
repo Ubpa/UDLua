@@ -70,6 +70,7 @@ namespace Ubpa::details {
 	}
 
 	namespace CppMeta {
+		static constexpr auto op_bool = TSTR("__bool");
 		static constexpr auto op_assign = TSTR("__assign");
 		static constexpr auto op_deref = TSTR("__deref");
 		static constexpr auto op_pre_inc = TSTR("__pre_inc");
@@ -79,6 +80,11 @@ namespace Ubpa::details {
 
 		static constexpr auto tuple_size = TSTR("tuple_size");
 		static constexpr auto tuple_get = TSTR("tuple_get");
+
+		static constexpr auto advance = TSTR("UDRefl::iterator_advance");
+		static constexpr auto distance = TSTR("UDRefl::iterator_distance");
+		static constexpr auto next = TSTR("UDRefl::iterator_next");
+		static constexpr auto prev = TSTR("UDRefl::iterator_prev");
 
 		static constexpr auto assign = TSTR("assign");
 		static constexpr auto begin = TSTR("begin");
@@ -123,12 +129,18 @@ namespace Ubpa::details {
 		static constexpr auto key_eq = TSTR("key_eq");
 		static constexpr auto get_allocator = TSTR("get_allocator");
 
+		using t_op_bool = decltype(op_bool);
 		using t_op_assign = decltype(op_assign);
 		using t_op_deref = decltype(op_deref);
 		using t_op_pre_inc = decltype(op_pre_inc);
 		using t_op_pre_dec = decltype(op_pre_dec);
 		using t_op_post_inc = decltype(op_post_inc);
 		using t_op_post_dec = decltype(op_post_dec);
+
+		using t_advance = decltype(advance);
+		using t_distance = decltype(distance);
+		using t_next = decltype(next);
+		using t_prev = decltype(prev);
 
 		using t_tuple_size = decltype(tuple_size);
 		using t_tuple_get = decltype(tuple_get);
@@ -1090,12 +1102,18 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"__sub", &f_meta<UDRefl::ObjectView, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
 	"__unm", &f_meta<UDRefl::ObjectView, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
 
+	"__bool",& f_meta<UDRefl::ObjectView, details::CppMeta::t_op_bool, details::CppMetaName::t_operator_bool, 2>,
 	"__assign",& f_meta<UDRefl::ObjectView, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
 	"__deref", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
 	"__pre_inc", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
 	"__pre_dec", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
 	"__post_inc", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
 	"__post_dec", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
+
+	"advance",& f_meta<UDRefl::ObjectView, details::CppMeta::t_advance, details::CppMetaName::t_iterator_advance, 2, true, void>,
+	"distance",& f_meta<UDRefl::ObjectView, details::CppMeta::t_distance, details::CppMetaName::t_iterator_distance, 2>,
+	"next",& f_meta<UDRefl::ObjectView, details::CppMeta::t_next, details::CppMetaName::t_iterator_next>,
+	"prev",& f_meta<UDRefl::ObjectView, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
 
 	"tuple_size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, true, std::size_t>,
 	"tuple_get",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, true, UDRefl::ObjectView>,
@@ -1162,12 +1180,18 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"__sub",&f_meta<UDRefl::SharedObject, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
 	"__unm", &f_meta<UDRefl::SharedObject, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
 
+	"__bool",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_bool, details::CppMetaName::t_operator_bool, 2>,
 	"__assign",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
 	"__deref", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
 	"__pre_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
 	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
 	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
 	"__post_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
+
+	"advance",& f_meta<UDRefl::SharedObject, details::CppMeta::t_advance, details::CppMetaName::t_iterator_advance, 2, true, void>,
+	"distance",& f_meta<UDRefl::SharedObject, details::CppMeta::t_distance, details::CppMetaName::t_iterator_distance, 2>,
+	"next",& f_meta<UDRefl::SharedObject, details::CppMeta::t_next, details::CppMetaName::t_iterator_next>,
+	"prev",& f_meta<UDRefl::SharedObject, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
 
 	"tuple_size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, true, std::size_t>,
 	"tuple_get",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, true, UDRefl::ObjectView>,
