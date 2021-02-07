@@ -3,10 +3,8 @@
 struct lua_State;
 
 // ReflMngr
-// StrID
-// TypeID
-// ObjectPtr
-// ConstObjectPtr
+// Name
+// Type
+// ObjectView
 // SharedObject
-// SharedConstObject
 void luaopen_UDRefl_libs (lua_State* L);

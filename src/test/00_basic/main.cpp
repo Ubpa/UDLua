@@ -53,15 +53,15 @@ struct vec {
 
 int main() {
 	std::map<int, int>::iterator t;
-	UDRefl::Mngr->RegisterType<vec>();
-	UDRefl::Mngr->AddConstructor<vec, float, float>();
-	UDRefl::Mngr->AddField<&vec::x>("x");
-	UDRefl::Mngr->AddField<&vec::y>("y");
-	UDRefl::Mngr->AddMethod<&vec::norm>("norm");
-	UDRefl::Mngr->AddMethod<&vec::offset>("offset");
-	UDRefl::Mngr->AddMethod<&vec::to_array>("to_array");
+	UDRefl::Mngr.RegisterType<vec>();
+	UDRefl::Mngr.AddConstructor<vec, float, float>();
+	UDRefl::Mngr.AddField<&vec::x>("x");
+	UDRefl::Mngr.AddField<&vec::y>("y");
+	UDRefl::Mngr.AddMethod<&vec::norm>("norm");
+	UDRefl::Mngr.AddMethod<&vec::offset>("offset");
+	UDRefl::Mngr.AddMethod<&vec::to_array>("to_array");
 
-	UDRefl::Mngr->RegisterType<std::array<float, 2>>();
+	UDRefl::Mngr.RegisterType<std::array<float, 2>>();
 
 	/*
 	v = ReflMngr.MakeShared("vec", 2, 3)

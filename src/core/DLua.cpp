@@ -177,30 +177,216 @@ namespace Ubpa::details {
 		using t_get_allocator = decltype(get_allocator);
 	}
 
+	namespace CppMetaName {
+		static constexpr auto ctor = TSTR("UDRefl::ctor");
+		static constexpr auto dtor = TSTR("UDRefl::dtor");
+		static constexpr auto operator_bool = TSTR("UDRefl::operator_bool");
+		static constexpr auto operator_plus = TSTR("UDRefl::operator+");
+		static constexpr auto operator_minus = TSTR("UDRefl::operator-");
+		static constexpr auto operator_add = TSTR("UDRefl::operator+");
+		static constexpr auto operator_sub = TSTR("UDRefl::operator-");
+		static constexpr auto operator_mul = TSTR("UDRefl::operator*");
+		static constexpr auto operator_div = TSTR("UDRefl::operator/");
+		static constexpr auto operator_mod = TSTR("UDRefl::operator%");
+		static constexpr auto operator_bnot = TSTR("UDRefl::operator~");
+		static constexpr auto operator_band = TSTR("UDRefl::operator&");
+		static constexpr auto operator_bor = TSTR("UDRefl::operator|");
+		static constexpr auto operator_bxor = TSTR("UDRefl::operator^");
+		static constexpr auto operator_lshift = TSTR("UDRefl::operator<<");
+		static constexpr auto operator_rshift = TSTR("UDRefl::operator>>");
+		static constexpr auto operator_pre_inc = TSTR("UDRefl::operator++");
+		static constexpr auto operator_pre_dec = TSTR("UDRefl::operator--");
+		static constexpr auto operator_post_inc = TSTR("UDRefl::operator++");
+		static constexpr auto operator_post_dec = TSTR("UDRefl::operator--");
+		static constexpr auto operator_assign = TSTR("UDRefl::operator=");
+		static constexpr auto operator_assign_add = TSTR("UDRefl::operator+=");
+		static constexpr auto operator_assign_sub = TSTR("UDRefl::operator-=");
+		static constexpr auto operator_assign_mul = TSTR("UDRefl::operator*=");
+		static constexpr auto operator_assign_div = TSTR("UDRefl::operator/=");
+		static constexpr auto operator_assign_mod = TSTR("UDRefl::operator%=");
+		static constexpr auto operator_assign_band = TSTR("UDRefl::operator&=");
+		static constexpr auto operator_assign_bor = TSTR("UDRefl::operator|=");
+		static constexpr auto operator_assign_bxor = TSTR("UDRefl::operator^=");
+		static constexpr auto operator_assign_lshift = TSTR("UDRefl::operator<<=");
+		static constexpr auto operator_assign_rshift = TSTR("UDRefl::operator>>=");
+		static constexpr auto operator_eq = TSTR("UDRefl::operator==");
+		static constexpr auto operator_ne = TSTR("UDRefl::operator!=");
+		static constexpr auto operator_lt = TSTR("UDRefl::operator<");
+		static constexpr auto operator_le = TSTR("UDRefl::operator<=");
+		static constexpr auto operator_gt = TSTR("UDRefl::operator>");
+		static constexpr auto operator_ge = TSTR("UDRefl::operator>=");
+		static constexpr auto operator_and = TSTR("UDRefl::operator&&");
+		static constexpr auto operator_or = TSTR("UDRefl::operator||");
+		static constexpr auto operator_not = TSTR("UDRefl::operator!");
+		static constexpr auto operator_subscript = TSTR("UDRefl::operator[]");
+		static constexpr auto operator_deref = TSTR("UDRefl::operator*");
+		static constexpr auto operator_ref = TSTR("UDRefl::operator&");
+		static constexpr auto operator_member = TSTR("UDRefl::operator->");
+		static constexpr auto operator_member_of_pointer = TSTR("UDRefl::operator->*");
+		static constexpr auto operator_call = TSTR("UDRefl::operator()");
+		static constexpr auto operator_comma = TSTR("UDRefl::operator,");
+		static constexpr auto tuple_size = TSTR("UDRefl::tuple_size");
+		static constexpr auto tuple_get = TSTR("UDRefl::tuple_get");
+		static constexpr auto iterator_advance = TSTR("UDRefl::iterator_advance");
+		static constexpr auto iterator_distance = TSTR("UDRefl::iterator_distance");
+		static constexpr auto iterator_next = TSTR("UDRefl::iterator_next");
+		static constexpr auto iterator_prev = TSTR("UDRefl::iterator_prev");
+		static constexpr auto container_assign = TSTR("UDRefl::container_assign");
+		static constexpr auto container_begin = TSTR("UDRefl::container_begin");
+		static constexpr auto container_cbegin = TSTR("UDRefl::container_cbegin");
+		static constexpr auto container_end = TSTR("UDRefl::container_end");
+		static constexpr auto container_cend = TSTR("UDRefl::container_cend");
+		static constexpr auto container_rbegin = TSTR("UDRefl::container_rbegin");
+		static constexpr auto container_crbegin = TSTR("UDRefl::container_crbegin");
+		static constexpr auto container_rend = TSTR("UDRefl::container_rend");
+		static constexpr auto container_crend = TSTR("UDRefl::container_crend");
+		static constexpr auto container_at = TSTR("UDRefl::container_at");
+		static constexpr auto container_data = TSTR("UDRefl::container_data");
+		static constexpr auto container_front = TSTR("UDRefl::container_front");
+		static constexpr auto container_back = TSTR("UDRefl::container_back");
+		static constexpr auto container_empty = TSTR("UDRefl::container_empty");
+		static constexpr auto container_size = TSTR("UDRefl::container_size");
+		static constexpr auto container_max_size = TSTR("UDRefl::container_max_size");
+		static constexpr auto container_resize = TSTR("UDRefl::container_resize");
+		static constexpr auto container_capacity = TSTR("UDRefl::container_capacity");
+		static constexpr auto container_bucket_count = TSTR("UDRefl::container_bucket_count");
+		static constexpr auto container_reserve = TSTR("UDRefl::container_reserve");
+		static constexpr auto container_shrink_to_fit = TSTR("UDRefl::container_shrink_to_fit");
+		static constexpr auto container_clear = TSTR("UDRefl::container_clear");
+		static constexpr auto container_insert = TSTR("UDRefl::container_insert");
+		static constexpr auto container_insert_or_assign = TSTR("UDRefl::container_insert_or_assign");
+		static constexpr auto container_erase = TSTR("UDRefl::container_erase");
+		static constexpr auto container_push_front = TSTR("UDRefl::container_push_front");
+		static constexpr auto container_pop_front = TSTR("UDRefl::container_pop_front");
+		static constexpr auto container_push_back = TSTR("UDRefl::container_push_back");
+		static constexpr auto container_pop_back = TSTR("UDRefl::container_pop_back");
+		static constexpr auto container_swap = TSTR("UDRefl::container_swap");
+		static constexpr auto container_merge = TSTR("UDRefl::container_merge");
+		static constexpr auto container_extract = TSTR("UDRefl::container_extract");
+		static constexpr auto container_count = TSTR("UDRefl::container_count");
+		static constexpr auto container_find = TSTR("UDRefl::container_find");
+		static constexpr auto container_lower_bound = TSTR("UDRefl::container_lower_bound");
+		static constexpr auto container_upper_bound = TSTR("UDRefl::container_upper_bound");
+		static constexpr auto container_equal_range = TSTR("UDRefl::container_equal_range");
+		static constexpr auto container_key_comp = TSTR("UDRefl::container_key_comp");
+		static constexpr auto container_value_comp = TSTR("UDRefl::container_value_comp");
+		static constexpr auto container_hash_function = TSTR("UDRefl::container_hash_function");
+		static constexpr auto container_key_eq = TSTR("UDRefl::container_key_eq");
+		static constexpr auto container_get_allocator = TSTR("UDRefl::container_get_allocator");
+
+		using t_ctor = decltype(ctor);
+		using t_dtor = decltype(dtor);
+		using t_operator_bool = decltype(operator_bool);
+		using t_operator_plus = decltype(operator_plus);
+		using t_operator_minus = decltype(operator_minus);
+		using t_operator_add = decltype(operator_add);
+		using t_operator_sub = decltype(operator_sub);
+		using t_operator_mul = decltype(operator_mul);
+		using t_operator_div = decltype(operator_div);
+		using t_operator_mod = decltype(operator_mod);
+		using t_operator_bnot = decltype(operator_bnot);
+		using t_operator_band = decltype(operator_band);
+		using t_operator_bor = decltype(operator_bor);
+		using t_operator_bxor = decltype(operator_bxor);
+		using t_operator_lshift = decltype(operator_lshift);
+		using t_operator_rshift = decltype(operator_rshift);
+		using t_operator_pre_inc = decltype(operator_pre_inc);
+		using t_operator_pre_dec = decltype(operator_pre_dec);
+		using t_operator_post_inc = decltype(operator_post_inc);
+		using t_operator_post_dec = decltype(operator_post_dec);
+		using t_operator_assign = decltype(operator_assign);
+		using t_operator_assign_add = decltype(operator_assign_add);
+		using t_operator_assign_sub = decltype(operator_assign_sub);
+		using t_operator_assign_mul = decltype(operator_assign_mul);
+		using t_operator_assign_div = decltype(operator_assign_div);
+		using t_operator_assign_mod = decltype(operator_assign_mod);
+		using t_operator_assign_band = decltype(operator_assign_band);
+		using t_operator_assign_bor = decltype(operator_assign_bor);
+		using t_operator_assign_bxor = decltype(operator_assign_bxor);
+		using t_operator_assign_lshift = decltype(operator_assign_lshift);
+		using t_operator_assign_rshift = decltype(operator_assign_rshift);
+		using t_operator_eq = decltype(operator_eq);
+		using t_operator_ne = decltype(operator_ne);
+		using t_operator_lt = decltype(operator_lt);
+		using t_operator_le = decltype(operator_le);
+		using t_operator_gt = decltype(operator_gt);
+		using t_operator_ge = decltype(operator_ge);
+		using t_operator_and = decltype(operator_and);
+		using t_operator_or = decltype(operator_or);
+		using t_operator_not = decltype(operator_not);
+		using t_operator_subscript = decltype(operator_subscript);
+		using t_operator_deref = decltype(operator_deref);
+		using t_operator_ref = decltype(operator_ref);
+		using t_operator_member = decltype(operator_member);
+		using t_operator_member_of_pointer = decltype(operator_member_of_pointer);
+		using t_operator_call = decltype(operator_call);
+		using t_operator_comma = decltype(operator_comma);
+		using t_tuple_size = decltype(tuple_size);
+		using t_tuple_get = decltype(tuple_get);
+		using t_iterator_advance = decltype(iterator_advance);
+		using t_iterator_distance = decltype(iterator_distance);
+		using t_iterator_next = decltype(iterator_next);
+		using t_iterator_prev = decltype(iterator_prev);
+		using t_container_assign = decltype(container_assign);
+		using t_container_begin = decltype(container_begin);
+		using t_container_cbegin = decltype(container_cbegin);
+		using t_container_end = decltype(container_end);
+		using t_container_cend = decltype(container_cend);
+		using t_container_rbegin = decltype(container_rbegin);
+		using t_container_crbegin = decltype(container_crbegin);
+		using t_container_rend = decltype(container_rend);
+		using t_container_crend = decltype(container_crend);
+		using t_container_at = decltype(container_at);
+		using t_container_data = decltype(container_data);
+		using t_container_front = decltype(container_front);
+		using t_container_back = decltype(container_back);
+		using t_container_empty = decltype(container_empty);
+		using t_container_size = decltype(container_size);
+		using t_container_max_size = decltype(container_max_size);
+		using t_container_resize = decltype(container_resize);
+		using t_container_capacity = decltype(container_capacity);
+		using t_container_bucket_count = decltype(container_bucket_count);
+		using t_container_reserve = decltype(container_reserve);
+		using t_container_shrink_to_fit = decltype(container_shrink_to_fit);
+		using t_container_clear = decltype(container_clear);
+		using t_container_insert = decltype(container_insert);
+		using t_container_insert_or_assign = decltype(container_insert_or_assign);
+		using t_container_erase = decltype(container_erase);
+		using t_container_push_front = decltype(container_push_front);
+		using t_container_pop_front = decltype(container_pop_front);
+		using t_container_push_back = decltype(container_push_back);
+		using t_container_pop_back = decltype(container_pop_back);
+		using t_container_swap = decltype(container_swap);
+		using t_container_merge = decltype(container_merge);
+		using t_container_extract = decltype(container_extract);
+		using t_container_count = decltype(container_count);
+		using t_container_find = decltype(container_find);
+		using t_container_lower_bound = decltype(container_lower_bound);
+		using t_container_upper_bound = decltype(container_upper_bound);
+		using t_container_equal_range = decltype(container_equal_range);
+		using t_container_key_comp = decltype(container_key_comp);
+		using t_container_value_comp = decltype(container_value_comp);
+		using t_container_hash_function = decltype(container_hash_function);
+		using t_container_key_eq = decltype(container_key_eq);
+		using t_container_get_allocator = decltype(container_get_allocator);
+	}
+
 	template<typename T>
 	struct LibName;
 }
 template<>
-struct Ubpa::details::LibName<UDRefl::ObjectPtr> {
-	static constexpr const char value[] = "ObjectPtr";
-};
-template<>
-struct Ubpa::details::LibName<UDRefl::ConstObjectPtr> {
-	static constexpr const char value[] = "ConstObjectPtr";
+struct Ubpa::details::LibName<UDRefl::ObjectView> {
+	static constexpr const char value[] = "ObjectView";
 };
 template<>
 struct Ubpa::details::LibName<UDRefl::SharedObject> {
 	static constexpr const char value[] = "SharedObject";
 };
-template<>
-struct Ubpa::details::LibName<UDRefl::SharedConstObject> {
-	static constexpr const char value[] = "SharedConstObject";
-};
 
 namespace Ubpa::details {
 	struct CallHandle {
-		TypeID typeID;
-		StrID methodID;
+		Type type;
+		Name method_name;
 	};
 
 	template<typename T>
@@ -214,31 +400,42 @@ namespace Ubpa::details {
 		};
 	}
 
-	template<typename Arg>
-	auto get_arg(LuaStateView L, int arg) {
-		if constexpr (std::is_reference_v<Arg>)
-			static_assert(always_false<Arg>);
-		else if constexpr (std::is_integral_v<Arg>)
-			return L.checkinteger(arg);
-		else if constexpr (std::is_floating_point_v<Arg>)
-			return L.checknumber(arg);
-		else if constexpr (std::is_null_pointer_v<Arg>) {
-			L.checktype(arg, LUA_TNIL);
+	template<typename T>
+	auto auto_get(LuaStateView L, int idx) {
+		if constexpr (std::is_reference_v<T>)
+			static_assert(always_false<T>);
+		else if constexpr (std::is_integral_v<T>)
+			return L.checkinteger(idx);
+		else if constexpr (std::is_floating_point_v<T>)
+			return L.checknumber(idx);
+		else if constexpr (std::is_null_pointer_v<T>) {
+			L.checktype(idx, LUA_TNIL);
 			return std::nullptr_t;
 		}
-		else if constexpr (std::is_same_v<std::decay_t<Arg>, const char*>)
-			return L.checkstring(arg);
-		else if constexpr (std::is_same_v<std::decay_t<Arg>, std::string_view>) {
+		else if constexpr (std::is_same_v<std::decay_t<T>, const char*>)
+			return L.checkstring(idx);
+		else if constexpr (std::is_same_v<std::decay_t<T>, std::string_view>) {
 			size_t len;
-			auto value = L.checklstring(arg, &len);
+			auto value = L.checklstring(idx, &len);
 			return std::string_view{ value, len };
 		}
-		else if constexpr (std::is_pointer_v<Arg> && std::is_void_v<std::remove_pointer_t<Arg>>) {
-			L.checktype(arg, LUA_TLIGHTUSERDATA);
-			return L.touserdata(-arg);
+		else if constexpr (std::is_pointer_v<T> && std::is_void_v<std::remove_pointer_t<T>>) {
+			L.checktype(idx, LUA_TLIGHTUSERDATA);
+			return L.touserdata(-idx);
+		}
+		else if constexpr (std::is_same_v<T, Name> || std::is_same_v<T, Type>) {
+			int type = L.type(idx);
+			switch (type)
+			{
+			case LUA_TNUMBER:
+				static_cast<std::size_t>(L.checkinteger(idx));
+				break;
+			default:
+				break;
+			}
 		}
 		else
-			return *(Arg*)L.checkudata(arg, type_name<Arg>().Data());
+			return *(T*)L.checkudata(idx, type_name<T>().Data());
 	}
 
 	template<typename Ret>
@@ -278,42 +475,42 @@ namespace Ubpa::details {
 
 	template<auto funcptr, typename Obj, std::size_t... Ns>
 	void caller(LuaStateView L, Obj* obj, std::index_sequence<Ns...>) {
-		using FuncPtr = decltype(funcptr);
-		using Traits = FuncTraits<FuncPtr>;
+		using FuncObj = decltype(funcptr);
+		using Traits = FuncTraits<FuncObj>;
 		using ArgList = typename Traits::ArgList;
 		using Ret = typename Traits::Return;
 		if constexpr (std::is_void_v<Ret>)
-			(obj->*funcptr)(get_arg<At_t<ArgList, Ns>>(L, 2 + Ns)...);
+			(obj->*funcptr)(auto_get<At_t<ArgList, Ns>>(L, 2 + Ns)...);
 		else {
-			auto ret = (obj->*funcptr)(get_arg<At_t<ArgList, Ns>>(L, 2 + Ns)...);
+			auto ret = (obj->*funcptr)(auto_get<At_t<ArgList, Ns>>(L, 2 + Ns)...);
 			push<Ret>(L, std::forward<Ret>(ret));
 		}
 	};
 
 	template<auto funcptr, std::size_t... Ns>
 	void caller(LuaStateView L, std::index_sequence<Ns...>) {
-		using FuncPtr = decltype(funcptr);
-		using Traits = FuncTraits<FuncPtr>;
+		using FuncObj = decltype(funcptr);
+		using Traits = FuncTraits<FuncObj>;
 		using ArgList = typename Traits::ArgList;
 		using Ret = typename Traits::Return;
 		if constexpr (std::is_void_v<Ret>)
-			funcptr(get_arg<At_t<ArgList, Ns>>(L, 1 + Ns)...);
+			funcptr(auto_get<At_t<ArgList, Ns>>(L, 1 + Ns)...);
 		else {
-			auto ret = funcptr(get_arg<At_t<ArgList, Ns>>(L, 1 + Ns)...);
+			auto ret = funcptr(auto_get<At_t<ArgList, Ns>>(L, 1 + Ns)...);
 			push<Ret>(L, std::forward<Ret>(ret));
 		}
 	};
 
 	template<auto funcptr, typename CustomObj, typename FuncName>
 	constexpr lua_CFunction wrap(FuncName = {}) noexcept {
-		using FuncPtr = decltype(funcptr);
-		using Traits = FuncTraits<FuncPtr>;
+		using FuncObj = decltype(funcptr);
+		using Traits = FuncTraits<FuncObj>;
 		using ArgList = typename Traits::ArgList;
 		using Ret = typename Traits::Return;
 		return static_cast<lua_CFunction>([](lua_State* L_) -> int {
 			LuaStateView L{ L_ };
 			int n = L.gettop();
-			if constexpr (std::is_member_function_pointer_v<FuncPtr>) {
+			if constexpr (std::is_member_function_pointer_v<FuncObj>) {
 				using Obj = std::conditional_t<std::is_void_v<CustomObj>, typename Traits::Object, CustomObj>;
 
 				if (n != 1 + Length_v<ArgList>)
@@ -325,7 +522,7 @@ namespace Ubpa::details {
 				auto* obj = (Obj*)L.checkudata(1, type_name<Obj>().Data());
 				caller<funcptr>(L, obj, std::make_index_sequence<Length_v<ArgList>>{});
 			}
-			else if constexpr (is_function_pointer_v<FuncPtr>) {
+			else if constexpr (is_function_pointer_v<FuncObj>) {
 				using Obj = CustomObj;
 				if (n != Length_v<ArgList>)
 					return L.error("%s::%s : The number of arguments is invalid. The function needs %I arguments (no object).",
@@ -336,7 +533,7 @@ namespace Ubpa::details {
 				caller<funcptr>(L, std::make_index_sequence<Length_v<ArgList>>{});
 			}
 			else
-				static_assert(always_false<FuncPtr>);
+				static_assert(always_false<FuncObj>);
 
 			if (std::is_void_v<Ret>)
 				return 0;
@@ -346,7 +543,7 @@ namespace Ubpa::details {
 	}
 }
 
-template<typename Functor, typename MetaName, std::size_t ID = static_cast<std::size_t>(-1), int LArgNum = -1, bool ExplictRet = false, typename Ret = void>
+template<typename Functor, typename MetaName, typename CppMetaName = Ubpa::TStrC_of<>, int LArgNum = -1, bool ExplictRet = false, typename Ret = void>
 static int f_meta(lua_State * L_) {
 	LuaStateView L{ L_ };
 
@@ -364,49 +561,32 @@ static int f_meta(lua_State * L_) {
 		}
 	}
 
-	using Ptr = std::conditional_t<std::is_same_v<Functor, UDRefl::ConstObjectPtr> || std::is_same_v<Functor, UDRefl::SharedConstObject>,
-		UDRefl::ConstObjectPtr,
-		UDRefl::ObjectPtr>;
-	Ptr ptr;
-	StrID methodID;
+	UDRefl::ObjectView ptr;
+	Name method_name;
 	int argnum = L_argnum - 1;
 
 	const auto& functor = *(Functor*)L.checkudata(1, type_name<Functor>().Data());
 
-	if constexpr (UDRefl::IsObjectOrPtr_v<Functor>) {
-		ptr = functor;
-		methodID = StrID{ ID };
+	if constexpr (UDRefl::IsObjectOrView_v<Functor>) {
+		ptr = UDRefl::ObjectView{ functor.GetType(), functor.GetPtr() };
+		method_name = { CppMetaName::View() };
 	}
 	else {
-		static_assert(ID == static_cast<std::size_t>(-1));
-		ptr = Ptr{ functor.typeID };
-		methodID = functor.methodID;
+		static_assert(std::is_same_v<CppMetaName, Ubpa::TStrC_of<>>);
+		ptr = { functor.type };
+		method_name = functor.method_name;
 		if (L_argnum >= 2) {
-			if (void* udata = L.testudata(2, type_name<UDRefl::ConstObjectPtr>().Data())) {
-				const auto& obj = *static_cast<UDRefl::ConstObjectPtr*>(udata);
-				if (obj.GetID() == functor.typeID) {
-					ptr = UDRefl::ConstCast(obj.AddConstLValueReference());
-					--argnum;
-				}
-			}
-			else if (void* udata = L.testudata(2, type_name<UDRefl::ObjectPtr>().Data())) {
-				const auto& obj = *static_cast<UDRefl::ObjectPtr*>(udata);
-				if (obj.GetID() == functor.typeID) {
-					ptr = obj.AddLValueReference();
-					--argnum;
-				}
-			}
-			else if (void* udata = L.testudata(2, type_name<UDRefl::SharedConstObject>().Data())) {
-				const auto& obj = *static_cast<UDRefl::SharedConstObject*>(udata);
-				if (obj.GetID() == functor.typeID) {
-					ptr = UDRefl::ConstCast(obj->AddConstLValueReference());
+			if (void* udata = L.testudata(2, type_name<UDRefl::ObjectView>().Data())) {
+				UDRefl::ObjectView obj = *static_cast<UDRefl::ObjectView*>(udata);
+				if (obj.GetType() == functor.type) {
+					ptr = obj;
 					--argnum;
 				}
 			}
 			else if (void* udata = L.testudata(2, type_name<UDRefl::SharedObject>().Data())) {
-				const auto& obj = *static_cast<UDRefl::SharedObject*>(udata);
-				if (obj.GetID() == functor.typeID) {
-					ptr = obj->AddLValueReference();
+				UDRefl::ObjectView obj = *static_cast<UDRefl::SharedObject*>(udata);
+				if (obj.GetType() == functor.type) {
+					ptr = obj;
 					--argnum;
 				}
 			}
@@ -419,16 +599,16 @@ static int f_meta(lua_State * L_) {
 	}
 
 	void* argptr_buffer[UDRefl::MaxArgNum];
-	std::size_t argTypeID_buffer[UDRefl::MaxArgNum];
+	Type argType_buffer[UDRefl::MaxArgNum];
 	std::uint64_t copied_args_buffer[UDRefl::MaxArgNum];
 	std::size_t num_copied_args = 0;
 
-	if constexpr (ID == UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue() || ID == UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue()) {
+	if constexpr (UDRefl::NameIDRegistry::Meta::operator_post_inc.Is(CppMetaName::View()) || UDRefl::NameIDRegistry::Meta::operator_post_dec.Is(CppMetaName::View())) {
 		static_assert(LArgNum == 1);
 		assert(argnum == 0);
 		auto arg_buffer = &copied_args_buffer[num_copied_args++];
 		argptr_buffer[0] = arg_buffer;
-		argTypeID_buffer[0] = TypeID_of<int>.GetValue();
+		argType_buffer[0] = Type_of<int>;
 		UDRefl::buffer_as<int>(arg_buffer) = 0;
 	}
 
@@ -441,7 +621,7 @@ static int f_meta(lua_State * L_) {
 		{
 			auto arg_buffer = &copied_args_buffer[num_copied_args++];
 			argptr_buffer[i] = arg_buffer;
-			argTypeID_buffer[i] = TypeID_of<bool>.GetValue();
+			argType_buffer[i] = Type_of<bool>;
 			UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
 		}
 		break;
@@ -449,14 +629,14 @@ static int f_meta(lua_State * L_) {
 			if (L.isinteger(arg)) {
 				auto arg_buffer = &copied_args_buffer[num_copied_args++];
 				argptr_buffer[i] = arg_buffer;
-				argTypeID_buffer[i] = TypeID_of<lua_Integer>.GetValue();
-				UDRefl::buffer_as<lua_Integer>(arg_buffer) = static_cast<lua_Integer>(L.tointeger(arg));
+				argType_buffer[i] = Type_of<lua_Integer>;
+				UDRefl::buffer_as<lua_Integer>(arg_buffer) = L.tointeger(arg);
 			}
 			else if (L.isnumber(arg)) {
 				auto arg_buffer = &copied_args_buffer[num_copied_args++];
 				argptr_buffer[i] = arg_buffer;
-				argTypeID_buffer[i] = TypeID_of<lua_Number>.GetValue();
-				UDRefl::buffer_as<lua_Number>(arg_buffer) = static_cast<lua_Number>(L.tonumber(arg));
+				argType_buffer[i] = Type_of<lua_Number>;
+				UDRefl::buffer_as<lua_Number>(arg_buffer) = L.tonumber(arg);
 			}
 			else
 				assert(false);
@@ -466,33 +646,21 @@ static int f_meta(lua_State * L_) {
 		//	assert(false);
 		//	break;
 		case LUA_TUSERDATA:
-			if (void* udata = L.testudata(-1, type_name<UDRefl::ConstObjectPtr>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::ConstObjectPtr*>(udata);
-				auto ref_rhs = rhs.AddConstLValueReference();
-				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
-			}
-			else if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectPtr>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::ObjectPtr*>(udata);
-				auto ref_rhs = rhs.AddLValueReference();
-				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
-			}
-			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedConstObject>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::SharedConstObject*>(udata);
-				auto ref_rhs = rhs->AddConstLValueReference();
-				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
+			if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectView>().Data())) {
+				const auto& rhs = *static_cast<UDRefl::ObjectView*>(udata);
+				auto ref_rhs = rhs.AddLValueReferenceWeak();
+				argptr_buffer[i] = ref_rhs.GetPtr();
+				argType_buffer[i] = ref_rhs.GetType();
 			}
 			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
 				const auto& rhs = *static_cast<UDRefl::SharedObject*>(udata);
-				auto ref_rhs = rhs->AddLValueReference();
-				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
+				auto ref_rhs = rhs.AddLValueReferenceWeak();
+				argptr_buffer[i] = ref_rhs.GetPtr();
+				argType_buffer[i] = ref_rhs.GetType();
 			}
 			else if (!L.getmetatable(arg)) {
 				argptr_buffer[i] = L.touserdata(arg);
-				argTypeID_buffer[i] = TypeID_of<void*>.GetValue();
+				argType_buffer[i] = Type_of<void*>;
 			}
 			break;
 		default:
@@ -505,8 +673,8 @@ static int f_meta(lua_State * L_) {
 	}
 
 	if constexpr (ExplictRet) {
-		auto invocable_rst = ptr->IsInvocable(methodID, std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)});
-		if (!invocable_rst || invocable_rst.result_desc.typeID != TypeID_of<Ret>) {
+		auto invocable_rst = ptr.IsInvocable(method_name, std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)});
+		if (!invocable_rst || invocable_rst.result_desc.type != Type_of<Ret>) {
 			return L.error("%s::%s : The function isn't invocable with arguments or it's return type isn't %s.",
 				type_name<Functor>().Data(),
 				MetaName::Data(),
@@ -515,17 +683,17 @@ static int f_meta(lua_State * L_) {
 		}
 
 		if constexpr (std::is_void_v<Ret>) {
-			ptr->InvokeRet<void>(
-				methodID,
-				std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)},
+			ptr.InvokeRet<void>(
+				method_name,
+				std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)},
 				static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
 			);
 			return 0;
 		}
 		else {
-			Ret rst = ptr->InvokeRet<Ret>(
-				methodID,
-				std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)},
+			Ret rst = ptr.InvokeRet<Ret>(
+				method_name,
+				std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)},
 				static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
 			);
 
@@ -535,20 +703,20 @@ static int f_meta(lua_State * L_) {
 		}
 	}
 	else {
-		UDRefl::SharedObject rst = ptr->MInvoke(
-			methodID,
-			std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)},
+		UDRefl::SharedObject rst = ptr.DMInvoke(
+			method_name,
+			std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)},
 			static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
 		);
 
-		if (!rst.GetID().Valid()) {
+		if (!rst.GetType()) {
 			return L.error("%s::%s : The function isn't invocable with arguments.",
 				type_name<Functor>().Data(),
 				MetaName::Data()
 			);
 		}
 
-		if (rst.GetID().Is<void>())
+		if (rst.GetType().Is<void>())
 			return 0;
 
 		void* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
@@ -560,52 +728,45 @@ static int f_meta(lua_State * L_) {
 	}
 }
 
-template<typename ID>
-static int f_ID_new(lua_State* L_) {
+template<typename T>
+static int f_T_new(lua_State* L_) {
 	LuaStateView L{ L_ };
 	int size = L.gettop();
 	if (size == 0) {
-		auto ptr = L.newuserdata(sizeof(ID));
-		new (ptr) ID;
+		void* buffer = L.newuserdata(sizeof(T));
+		new (buffer) T{};
 	}
 	else if (size == 1) {
 		int type = L.type(-1);
 		switch (type)
 		{
-		case LUA_TNUMBER:
-		{
-			lua_Integer value = L.checkinteger(1);
-			auto ptr = L.newuserdata(sizeof(ID));
-			new (ptr) ID{ static_cast<std::size_t>(value) };
-		}
-			break;
 		case LUA_TSTRING:
 		{
 			size_t len;
 			const char* str = L.tolstring(1, &len);
-			void* buffer = L.newuserdata(sizeof(ID));
-			new (buffer) ID{ std::string_view{ str, len } };
-		}
+			void* buffer = L.newuserdata(sizeof(T));
+			new (buffer) Type{ std::string_view{ str, len } };
 			break;
+		}
 		default:
-			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a string / a integer.", type_name<ID>().Data());
+			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a string.", type_name<T>().Data());
 		}
 	}
 	else
-		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a string / a integer.", type_name<ID>().Data());
+		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a string.", type_name<T>().Data());
 
-	L.getmetatable(type_name<ID>().Data());
+	L.getmetatable(type_name<T>().Data());
 	L.setmetatable(-2);
 	return 1;
 }
 
-template<typename Ptr>
-static int f_Ptr_new(lua_State* L_) {
+template<typename Obj>
+static int f_Obj_new(lua_State* L_) {
 	LuaStateView L{ L_ };
 	int size = L.gettop();
 	if (size == 0) {
-		auto ptr = L.newuserdata(sizeof(Ptr));
-		new (ptr) Ptr;
+		void* buffer = L.newuserdata(sizeof(Obj));
+		new (buffer) Obj;
 	}
 	else if (size == 1) {
 		int type = L.type(-1);
@@ -613,81 +774,82 @@ static int f_Ptr_new(lua_State* L_) {
 		{
 		case LUA_TUSERDATA:
 		{
-			auto* id = (TypeID*)L.checkudata(1, type_name<TypeID>().Data());
-			auto ptr = L.newuserdata(sizeof(Ptr));
-			new (ptr) Ptr{ *id };
+			auto* id = (Type*)L.checkudata(1, type_name<Type>().Data());
+			void* buffer = L.newuserdata(sizeof(Obj));
+			new (buffer) Obj{ *id };
+			break;
 		}
-		break;
+		case LUA_TNIL:
+		{
+			void* buffer = L.newuserdata(sizeof(Obj));
+			new (buffer) Obj{ nullptr };
+			break;
+		}
 		default:
-			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a TypeID.", type_name<Ptr>().Data());
+			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a Type/nil.", type_name<Obj>().Data());
 		}
 	}
 	else
-		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a TypeID.", type_name<Ptr>().Data());
+		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a Type/nil.", type_name<Obj>().Data());
 
-	L.getmetatable(type_name<Ptr>().Data());
+	L.getmetatable(type_name<Obj>().Data());
 	L.setmetatable(-2);
 	return 1;
 }
 
-template<typename CPtr>
-static int f_CPtr_AsNumber(lua_State* L_) {
+template<typename Obj>
+static int f_Obj_AsNumber(lua_State* L_) {
 	LuaStateView L{ L_ };
 
 	if (L.gettop() != 1)
-		return L.error("%s::AsNumber : The number of arguments is invalid. The function needs 1 argument (object).", type_name<CPtr>().Data());
+		return L.error("%s::AsNumber : The number of arguments is invalid. The function needs 1 argument (object).", type_name<Obj>().Data());
 
-	auto ptr = static_cast<UDRefl::ConstObjectPtr>(*(CPtr*)L.checkudata(1, type_name<CPtr>().Data()));
+	auto ptr = static_cast<UDRefl::ObjectView>(*(Obj*)L.checkudata(1, type_name<Obj>().Data()));
 
-	if (!ptr.Valid())
-		return L.error("%s::AsNumber : The object is nil.", type_name<CPtr>().Data());
+	if (!ptr.GetPtr())
+		return L.error("%s::AsNumber : The object is nil.", type_name<Obj>().Data());
 
-	if (UDRefl::DereferenceProperty_IsReference(UDRefl::Mngr->GetDereferenceProperty(ptr.GetID())))
-		ptr = ptr.DereferenceAsConst();
+	ptr = ptr.RemoveConstReference();
 
-	std::string_view tname = ptr.TypeName();
+	std::string_view tname = ptr.GetType().GetName();
 
 	if (tname == type_name<bool>().View())
 		L.pushboolean(ptr.As<bool>());
 	else if (type_name_is_integral(tname)) {
 		lua_Integer value;
-		UDRefl::Ptr(value)->AInvoke<void>(UDRefl::StrIDRegistry::MetaID::ctor, ptr);
+		UDRefl::ObjectView{ value }.AInvoke<void>(UDRefl::NameIDRegistry::Meta::ctor, ptr);
 		L.pushinteger(value);
 	}
 	else if (type_name_is_floating_point(tname)) {
 		lua_Number value;
-		UDRefl::Ptr(value)->AInvoke<void>(UDRefl::StrIDRegistry::MetaID::ctor, ptr);
+		UDRefl::ObjectView{ value }.AInvoke<void>(UDRefl::NameIDRegistry::Meta::ctor, ptr);
 		L.pushnumber(value);
 	}
 	else {
 		return L.error("%s::AsNumber : The type (%s) can't convert to a number.",
-			type_name<CPtr>().Data(),
+			type_name<Obj>().Data(),
 			tname.data());
 	}
 
 	return 1;
 }
 
-template<typename CPtr>
-static int f_CPtr_tostring(lua_State* L_) {
+template<typename Obj>
+static int f_Obj_tostring(lua_State* L_) {
 	LuaStateView L{ L_ };
 
 	if (L.gettop() != 1)
-		return L.error("%s::__tostring : The number of arguments is invalid. The function needs 1 argument (object).", type_name<CPtr>().Data());
+		return L.error("%s::__tostring : The number of arguments is invalid. The function needs 1 argument (object).", type_name<Obj>().Data());
 
-	auto ptr = static_cast<UDRefl::ConstObjectPtr>(*(CPtr*)L.checkudata(1, type_name<CPtr>().Data()));
+	auto ptr = static_cast<UDRefl::ObjectView>(*(Obj*)L.checkudata(1, type_name<Obj>().Data()));
 
-	if (!ptr.Valid())
-		return L.error("%s::__tostring : The object is nil.", type_name<CPtr>().Data());
+	if (!ptr.GetPtr())
+		return L.error("%s::__tostring : The object is nil.", type_name<Obj>().Data());
 
-	if (UDRefl::DereferenceProperty_IsReference(UDRefl::Mngr->GetDereferenceProperty(ptr.GetID())))
-		ptr = ptr.DereferenceAsConst();
-
-	if (!ptr.IsInvocable<std::stringstream&>(UDRefl::StrIDRegistry::MetaID::operator_rshift)) {
-		std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr.DereferenceAsConst().GetID());
+	if (!ptr.IsInvocable<std::stringstream&>(UDRefl::NameIDRegistry::Meta::operator_rshift)) {
 		return L.error("%s::__tostring : The type (%s) can't convert to a string.",
-			type_name<CPtr>().Data(),
-			tname.data());
+			type_name<Obj>().Data(),
+			ptr.GetType().GetName().data());
 	}
 
 	std::stringstream ss;
@@ -699,99 +861,87 @@ static int f_CPtr_tostring(lua_State* L_) {
 	return 1;
 }
 
-template<typename Ptr>
-static int f_Ptr_index(lua_State* L_) {
+template<typename Obj>
+static int f_Obj_index(lua_State* L_) {
 	LuaStateView L{ L_ };
 
 	if (L.gettop() != 2)
-		return L.error("%s::__index : The number of arguments is invalid. The function needs 2 argument (object + key).", type_name<Ptr>().Data());
+		return L.error("%s::__index : The number of arguments is invalid. The function needs 2 argument (object + key).", type_name<Obj>().Data());
 
 	int type = L.type(2);
 
-	StrID key_ID;
-	const char* key = nullptr;
+	Name key;
 	switch (type)
 	{
 	case LUA_TUSERDATA:
 	{
-		if (auto* pID = (StrID*)L.testudata(2, type_name<StrID>().Data()))
-			key_ID = *pID;
+		if (auto* pName = (Name*)L.testudata(2, type_name<Name>().Data()))
+			key = *pName;
 		else
-			return f_meta<Ptr, details::Meta::t_index, UDRefl::StrIDRegistry::MetaID::operator_subscript.GetValue(), 2>(L_);
+			return f_meta<Obj, details::Meta::t_index, details::CppMetaName::t_operator_subscript, 2>(L_);
 
 		break;
 	}
 	case LUA_TSTRING:
 	{
 		size_t len;
-		key = L.checklstring(2, &len);
-		key_ID = StrID{ std::string_view{key, len} };
+		const char* key_name = L.checklstring(2, &len);
+		key = Name{ std::string_view{key_name, len} };
 		break;
 	}
 	default:
-		return f_meta<Ptr, details::Meta::t_index, UDRefl::StrIDRegistry::MetaID::operator_subscript.GetValue(), 2>(L_);
+		return f_meta<Obj, details::Meta::t_index, details::CppMetaName::t_operator_subscript, 2>(L_);
 	}
 	
-	const auto& ptr = *(Ptr*)L.checkudata(1, type_name<Ptr>().Data());
+	UDRefl::ObjectView ptr = *(Obj*)L.checkudata(1, type_name<Obj>().Data());
 
-	if constexpr (std::is_same_v<Ptr, UDRefl::ObjectPtr> || std::is_same_v<Ptr, UDRefl::SharedObject>) {
-		if (auto keyptr = ptr->RWVar(key_ID); keyptr.Valid()) {
-			auto* buffer = L.newuserdata(sizeof(UDRefl::ObjectPtr));
-			new(buffer)UDRefl::ObjectPtr{ keyptr };
-			L.getmetatable(type_name<UDRefl::ObjectPtr>().Data());
-			L.setmetatable(-2);
-			return 1;
-		}
+	if (key.Is("this")) {
+		L.pushvalue(1);
+		return 1;
 	}
-	
-	if (auto keyptr = ptr->RVar(key_ID); keyptr.Valid()) {
-		auto* buffer = L.newuserdata(sizeof(UDRefl::ConstObjectPtr));
-		new(buffer)UDRefl::ConstObjectPtr{ keyptr };
-		L.getmetatable(type_name<UDRefl::ConstObjectPtr>().Data());
+	else if (auto key_obj = ptr.Var(key); key_obj.GetPtr()) {
+		auto* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
+		new(buffer)UDRefl::ObjectView{ key_obj };
+		L.getmetatable(type_name<UDRefl::ObjectView>().Data());
 		L.setmetatable(-2);
 	}
-	else if (ptr->ContainsMethod(key_ID)) {
+	else if (ptr.ContainsMethod(key)) {
 		auto* buffer = L.newuserdata(sizeof(details::CallHandle));
-		new(buffer)details::CallHandle{ ptr.GetID(), key_ID };
+		new(buffer)details::CallHandle{ ptr.GetType(), key };
 		L.getmetatable(type_name<details::CallHandle>().Data());
 		L.setmetatable(-2);
 	}
 	else {
 		if (!key) {
-			key = UDRefl::Mngr->nregistry.Nameof(key_ID).data();
-			if (!key) {
-				std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr->DereferenceAsConst().GetID());
-				return L.error("%s::__index : %s can't index a non-var and non-method StrID, and ReflMngr's nregistry doesn't contains the StrID.",
-					type_name<Ptr>().Data(),
-					tname.data());
-			}
+			return L.error("%s::__index : %s can't index a non-var and non-method Name.",
+				type_name<Obj>().Data(),
+				ptr.GetType().GetName().data());
 		}
 
-		int success = L.getmetatable(-2); // Ptr's metatable
+		int success = L.getmetatable(-2); // Obj's metatable
 		assert(success);
-		int contain = L.getfield(-1, key);
+		int contain = L.getfield(-1, key.GetView().data());
 		if (!contain) {
-			std::string_view tname = UDRefl::Mngr->tregistry.Nameof(ptr->DereferenceAsConst().GetID());
 			return L.error("%s::__index : %s not contain %s.",
-				type_name<Ptr>().Data(),
-				tname.data(),
-				key);
+				type_name<Obj>().Data(),
+				ptr.GetType().GetName().data(),
+				key.GetView().data());
 		}
 	}
 	return 1;
 }
 
-template<typename Ptr>
-static int f_Ptr_newindex(lua_State* L_) {
+template<typename Obj>
+static int f_Obj_newindex(lua_State* L_) {
 	LuaStateView L{ L_ };
 	if (L.gettop() != 3) {
 		return L.error("%s::__newindex : The number of arguments is invalid. The function needs 3 argument (object, key, value).",
-			type_name<Ptr>().Data());
+			type_name<Obj>().Data());
 	}
 
 	// stack : ptr, key, value
-	L.getmetatable(type_name<UDRefl::ObjectPtr>().Data());
-	L.getmetatable(type_name<Ptr>().Data());
+	L.getmetatable(type_name<UDRefl::ObjectView>().Data());
+	L.getmetatable(type_name<Obj>().Data());
 	L.getfield(-2, details::CppMeta::op_assign.Data());
 	L.getfield(-2, details::Meta::index.Data());
 	L.rotate(1, -2);
@@ -800,7 +950,7 @@ static int f_Ptr_newindex(lua_State* L_) {
 		int error = L.pcall(2, 1, 0);
 		if (error) {
 			return L.error("%s::__newindex::__index: %s",
-				type_name<Ptr>().Data(), L.tostring(-1));
+				type_name<Obj>().Data(), L.tostring(-1));
 		}
 	}
 	// stack : value, ..., __assign, __index result (member ptr)
@@ -810,40 +960,42 @@ static int f_Ptr_newindex(lua_State* L_) {
 		int error = L.pcall(2, 1, 0);
 		if (error) {
 			return L.error("%s::__newindex::__assign: %s",
-				type_name<Ptr>().Data(), L.tostring(-1));
+				type_name<Obj>().Data(), L.tostring(-1));
 		}
 	}
 	return 1;
 }
 
-template<typename Ptr>
+template<typename Obj>
 static int f_range_next(lua_State* L_) {
 	LuaStateView L{ L_ };
-	if (L.gettop() != 2) {
-		return L.error("range_next : The number of arguments is invalid. The function needs 2 argument (end_iter, iter).");
+	const int argnum = L.gettop();
+
+	if (argnum != 1 && argnum != 2) {
+		return L.error("range_next : The number of arguments is invalid. The function needs 1/2 argument (end_iter[, iter/nil]).");
 	}
 
-	const auto& ptr = *(Ptr*)L.checkudata(1, type_name<Ptr>().Data());
-	UDRefl::SharedObject end_iter = ptr->end();
+	UDRefl::ObjectView ptr = *(Obj*)L.checkudata(1, type_name<Obj>().Data());
+	UDRefl::SharedObject end_iter = ptr.end();
 
-	if (!end_iter.Valid()) {
-		std::string_view tname = ptr->TypeName();
+	if (!end_iter.GetType()) {
 		return L.error("range_next : The type (%s) can't invoke end.",
-			type_name<Ptr>().Data(),
-			tname.data());
+			type_name<Obj>().Data(),
+			ptr.GetType().GetName().data());
 	}
+	if (argnum == 1)
+		L.pushnil();
 
 	int type = L.type(2);
 	switch (type)
 	{
 	case LUA_TNIL:
 	{
-		UDRefl::SharedObject iter = ptr->begin();
-		if (!iter.Valid()) {
-			std::string_view tname = ptr->TypeName();
+		UDRefl::SharedObject iter = ptr.begin();
+		if (!iter.GetType()) {
 			return L.error("range_next : The type (%s) can't invoke begin.",
-				type_name<Ptr>().Data(),
-				tname.data());
+				type_name<Obj>().Data(),
+				ptr.GetType().GetName().data());
 		}
 		if (iter == end_iter)
 			L.pushnil();
@@ -853,13 +1005,12 @@ static int f_range_next(lua_State* L_) {
 	}
 	case LUA_TUSERDATA:
 	{
-		const auto& iter = *(UDRefl::SharedObject*)L.checkudata(2, type_name<UDRefl::SharedObject>().Data());
+		UDRefl::ObjectView iter = *(UDRefl::SharedObject*)L.checkudata(2, type_name<UDRefl::SharedObject>().Data());
 		UDRefl::SharedObject rst = ++iter;
-		if (!rst.Valid()) {
-			std::string_view tname = iter->TypeName();
+		if (!rst.GetType()) {
 			return L.error("range_next : The type (%s) can't invoke operator++().",
-				type_name<Ptr>().Data(),
-				tname.data());
+				type_name<Obj>().Data(),
+				iter.GetType().GetName().data());
 		}
 		if (iter == end_iter)
 			L.pushnil();
@@ -870,290 +1021,185 @@ static int f_range_next(lua_State* L_) {
 	}
 }
 
-template<typename Ptr>
-static int f_Ptr_range(lua_State* L_) {
+template<typename Obj>
+static int f_Obj_range(lua_State* L_) {
 	LuaStateView L{ L_ };
 	if (L.gettop() != 1) {
 		return L.error("%s::range : The number of arguments is invalid. The function needs 1 argument (obj).",
-			type_name<Ptr>().Data());
+			type_name<Obj>().Data());
 	}
-	L.checkudata(1, type_name<Ptr>().Data());
-	L.pushcfunction(&f_range_next<Ptr>);
+	L.checkudata(1, type_name<Obj>().Data());
+	L.pushcfunction(&f_range_next<Obj>);
 	L.pushvalue(1);
 	L.pushnil();
 	return 3;
 }
 
-static const struct luaL_Reg lib_StrID[] = {
-	"new", f_ID_new<StrID>,
+static const struct luaL_Reg lib_Name[] = {
+	"new", f_T_new<Name>,
 	NULL , NULL
 };
 
-static const struct luaL_Reg meta_StrID[] = {
-	"GetValue", details::wrap<&StrID::GetValue, StrID>(TSTR("GetValue")),
-	"Valid"   , details::wrap<&StrID::Valid,    StrID>(TSTR("Valid")),
-	"Is"      , details::wrap<&StrID::Is,       StrID>(TSTR("Is")),
-	NULL      , NULL
+static const struct luaL_Reg meta_Name[] = {
+	"GetID", details::wrap<&Name::GetID, Name>(TSTR("GetID")),
+	"GetView", details::wrap<&Name::GetView, Name>(TSTR("GetView")),
+	"Valid", details::wrap<&Name::Valid, Name>(TSTR("Valid")),
+	"Is", details::wrap<&Name::Is, Name>(TSTR("Is")),
+	NULL, NULL
 };
 
-static const struct luaL_Reg lib_TypeID[] = {
-	"new", f_ID_new<TypeID>,
+static const struct luaL_Reg lib_Type[] = {
+	"new", f_T_new<Type>,
 	NULL , NULL
 };
 
-static const struct luaL_Reg meta_TypeID[] = {
-	"GetValue", details::wrap<&TypeID::GetValue, TypeID>(TSTR("GetValue")),
-	"Valid"   , details::wrap<&TypeID::Valid,    TypeID>(TSTR("Valid")),
-	"Is"      , details::wrap<&IDBase::Is,       TypeID>(TSTR("Is")),
+static const struct luaL_Reg meta_Type[] = {
+	"GetID", details::wrap<&Type::GetID, Type>(TSTR("GetID")),
+	"GetName", details::wrap<&Type::GetName, Type>(TSTR("GetName")),
+	"Valid", details::wrap<&Type::Valid, Type>(TSTR("Valid")),
+	"Is", details::wrap<MemFuncOf<Type, bool(std::string_view)const noexcept>::get(&Type::Is), Type>(TSTR("Is")),
+	NULL, NULL
+};
+
+static const struct luaL_Reg lib_ObjectView[] = {
+	"new"     , f_Obj_new<UDRefl::ObjectView>,
 	NULL      , NULL
 };
+static const struct luaL_Reg meta_ObjectView[] = {
+	"GetType", details::wrap<&UDRefl::ObjectView::GetType, UDRefl::ObjectView>(TSTR("GetType")),
+	"GetPtr", details::wrap<&UDRefl::ObjectView::GetPtr, UDRefl::ObjectView>(TSTR("GetPtr")),
+	"AsNumber", f_Obj_AsNumber<UDRefl::ObjectView>,
 
-static const struct luaL_Reg lib_ConstObjectPtr[] = {
-	"new"     , f_Ptr_new<UDRefl::ConstObjectPtr>,
-	NULL      , NULL
-};
-static const struct luaL_Reg meta_ConstObjectPtr[] = {
-	"GetID"   , details::wrap<&UDRefl::ConstObjectPtr::GetID,    UDRefl::ConstObjectPtr>(TSTR("GetID")),
-	"Valid"   , details::wrap<&UDRefl::ConstObjectPtr::Valid,    UDRefl::ConstObjectPtr>(TSTR("Valid")),
-	"GetType" , details::wrap<&UDRefl::ConstObjectPtr::GetType,  UDRefl::ConstObjectPtr>(TSTR("GetType")),
-	"TypeName", details::wrap<&UDRefl::ConstObjectPtr::TypeName, UDRefl::ConstObjectPtr>(TSTR("TypeName")),
-	"AsNumber", f_CPtr_AsNumber<UDRefl::ConstObjectPtr>,
+	"__index", &f_Obj_index<UDRefl::ObjectView>,
+	"__newindex",& f_Obj_newindex<UDRefl::ObjectView>,
+	"__tostring", &f_Obj_tostring<UDRefl::ObjectView>,
+	"__call",  &f_meta<UDRefl::ObjectView, details::Meta::t_call, details::CppMetaName::t_operator_call>,
+	"__add", &f_meta<UDRefl::ObjectView, details::Meta::t_add, details::CppMetaName::t_operator_add, 2>,
+	"__band", &f_meta<UDRefl::ObjectView, details::Meta::t_band, details::CppMetaName::t_operator_band, 2>,
+	"__bnot", &f_meta<UDRefl::ObjectView, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
+	"__bor", &f_meta<UDRefl::ObjectView, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2>,
+	"__bxor", &f_meta<UDRefl::ObjectView, details::Meta::t_bxor, details::CppMetaName::t_operator_bxor, 2>,
+	"__div", &f_meta<UDRefl::ObjectView, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
+	"__eq", &f_meta<UDRefl::ObjectView, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, true, bool>,
+	"__le", &f_meta<UDRefl::ObjectView, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, true, bool>,
+	"__lt", &f_meta<UDRefl::ObjectView, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, true, bool>,
+	"__mod", &f_meta<UDRefl::ObjectView, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
+	"__mul", &f_meta<UDRefl::ObjectView, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2>,
+	"__shl", &f_meta<UDRefl::ObjectView, details::Meta::t_shl, details::CppMetaName::t_operator_lshift, 2>,
+	"__shr", &f_meta<UDRefl::ObjectView, details::Meta::t_shr, details::CppMetaName::t_operator_rshift, 2>,
+	"__sub", &f_meta<UDRefl::ObjectView, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
+	"__unm", &f_meta<UDRefl::ObjectView, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
 
-	"__index", &f_Ptr_index<UDRefl::ConstObjectPtr>,
-	"__tostring", &f_CPtr_tostring<UDRefl::ConstObjectPtr>,
-	"__call",  &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_call, UDRefl::StrIDRegistry::MetaID::operator_call.GetValue()>,
-	"__add", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_add, UDRefl::StrIDRegistry::MetaID::operator_add.GetValue(), 2>,
-	"__band", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_band, UDRefl::StrIDRegistry::MetaID::operator_band.GetValue(), 2>,
-	"__bnot", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_bnot, UDRefl::StrIDRegistry::MetaID::operator_bnot.GetValue(), 1>,
-	"__bor", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_bor, UDRefl::StrIDRegistry::MetaID::operator_bor.GetValue(), 2>,
-	"__bxor", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_bxor, UDRefl::StrIDRegistry::MetaID::operator_bxor.GetValue(), 2>,
-	"__div", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_div, UDRefl::StrIDRegistry::MetaID::operator_div.GetValue(), 2>,
-	"__eq", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_eq, UDRefl::StrIDRegistry::MetaID::operator_eq.GetValue(), 2, true, bool>,
-	"__le", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_le, UDRefl::StrIDRegistry::MetaID::operator_le.GetValue(), 2, true, bool>,
-	"__lt", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_lt, UDRefl::StrIDRegistry::MetaID::operator_lt.GetValue(), 2, true, bool>,
-	"__mod", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_mod, UDRefl::StrIDRegistry::MetaID::operator_mod.GetValue(), 2>,
-	"__mul", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_mul, UDRefl::StrIDRegistry::MetaID::operator_mul.GetValue(), 2>,
-	"__shl", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_shl, UDRefl::StrIDRegistry::MetaID::operator_lshift.GetValue(), 2>,
-	"__shr", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_shr, UDRefl::StrIDRegistry::MetaID::operator_rshift.GetValue(), 2>,
-	"__sub", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_sub, UDRefl::StrIDRegistry::MetaID::operator_sub.GetValue(), 2>,
-	"__unm", &f_meta<UDRefl::ConstObjectPtr, details::Meta::t_unm, UDRefl::StrIDRegistry::MetaID::operator_minus.GetValue(), 2>,
+	"__assign",& f_meta<UDRefl::ObjectView, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
+	"__deref", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
+	"__pre_inc", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
+	"__pre_dec", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
+	"__post_inc", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
+	"__post_dec", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
 
-	"__assign",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_assign, UDRefl::StrIDRegistry::MetaID::operator_assign.GetValue(), 2>,
-	"__deref", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
-	"__pre_inc", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
-	"__pre_dec", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
-	"__post_dec", &f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
+	"tuple_size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, true, std::size_t>,
+	"tuple_get",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, true, UDRefl::ObjectView>,
 
-	"tuple_size",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_tuple_size, UDRefl::StrIDRegistry::MetaID::tuple_size.GetValue(), 1, true, std::size_t>,
-	"tuple_get",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_tuple_get, UDRefl::StrIDRegistry::MetaID::tuple_get.GetValue(), 2, true, UDRefl::ConstObjectPtr>,
+	"begin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
+	"cbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
+	"end_",& f_meta<UDRefl::ObjectView, details::CppMeta::t_end, details::CppMetaName::t_container_end, 1>,
+	"cend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_cend, details::CppMetaName::t_container_cend, 1>,
+	"rbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_rbegin, details::CppMetaName::t_container_rbegin, 1>,
+	"crbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_crbegin, details::CppMetaName::t_container_crbegin, 1>,
+	"rend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_rend, details::CppMetaName::t_container_rend, 1>,
+	"crend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_crend, details::CppMetaName::t_container_crend, 1>,
+	"at",& f_meta<UDRefl::ObjectView, details::CppMeta::t_at, details::CppMetaName::t_container_at, 2>,
+	"data",& f_meta<UDRefl::ObjectView, details::CppMeta::t_data, details::CppMetaName::t_container_data, 1>,
+	"front",& f_meta<UDRefl::ObjectView, details::CppMeta::t_front, details::CppMetaName::t_container_front, 1>,
+	"back",& f_meta<UDRefl::ObjectView, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
+	"empty",& f_meta<UDRefl::ObjectView, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1>,
+	"size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1>,
+	"capacity",& f_meta<UDRefl::ObjectView, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1>,
+	"bucket_count",& f_meta<UDRefl::ObjectView, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1>,
+	"count",& f_meta<UDRefl::ObjectView, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2>,
+	"find",& f_meta<UDRefl::ObjectView, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
+	"lower_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
+	"upper_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
+	"equal_range",& f_meta<UDRefl::ObjectView, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
+	"key_comp",& f_meta<UDRefl::ObjectView, details::CppMeta::t_key_comp, details::CppMetaName::t_container_key_comp, 1>,
+	"value_comp",& f_meta<UDRefl::ObjectView, details::CppMeta::t_value_comp, details::CppMetaName::t_container_value_comp, 1>,
+	"hash_function",& f_meta<UDRefl::ObjectView, details::CppMeta::t_hash_function, details::CppMetaName::t_container_hash_function, 1>,
+	"key_eq",& f_meta<UDRefl::ObjectView, details::CppMeta::t_key_eq, details::CppMetaName::t_container_key_eq, 1>,
+	"get_allocator",& f_meta<UDRefl::ObjectView, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
 
-	"begin",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_begin, UDRefl::StrIDRegistry::MetaID::container_begin.GetValue(), 1>,
-	"cbegin",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_cbegin, UDRefl::StrIDRegistry::MetaID::container_cbegin.GetValue(), 1>,
-	"end_",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_end, UDRefl::StrIDRegistry::MetaID::container_end.GetValue(), 1>,
-	"cend",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_cend, UDRefl::StrIDRegistry::MetaID::container_cend.GetValue(), 1>,
-	"rbegin",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_rbegin, UDRefl::StrIDRegistry::MetaID::container_rbegin.GetValue(), 1>,
-	"crbegin",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_crbegin, UDRefl::StrIDRegistry::MetaID::container_crbegin.GetValue(), 1>,
-	"rend",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_rend, UDRefl::StrIDRegistry::MetaID::container_rend.GetValue(), 1>,
-	"crend",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_crend, UDRefl::StrIDRegistry::MetaID::container_crend.GetValue(), 1>,
-	"at",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_at, UDRefl::StrIDRegistry::MetaID::container_at.GetValue(), 2>,
-	"data",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_data, UDRefl::StrIDRegistry::MetaID::container_data.GetValue(), 1>,
-	"front",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_front, UDRefl::StrIDRegistry::MetaID::container_front.GetValue(), 1>,
-	"back",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_back, UDRefl::StrIDRegistry::MetaID::container_back.GetValue(), 1>,
-	"empty",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_empty, UDRefl::StrIDRegistry::MetaID::container_empty.GetValue(), 1>,
-	"size",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_size, UDRefl::StrIDRegistry::MetaID::container_size.GetValue(), 1>,
-	"capacity",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_capacity, UDRefl::StrIDRegistry::MetaID::container_capacity.GetValue(), 1>,
-	"bucket_count",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_bucket_count, UDRefl::StrIDRegistry::MetaID::container_bucket_count.GetValue(), 1>,
-	"count",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_count, UDRefl::StrIDRegistry::MetaID::container_count.GetValue(), 2>,
-	"find",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_find, UDRefl::StrIDRegistry::MetaID::container_find.GetValue(), 2>,
-	"lower_bound",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_lower_bound, UDRefl::StrIDRegistry::MetaID::container_lower_bound.GetValue(), 2>,
-	"upper_bound",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_upper_bound, UDRefl::StrIDRegistry::MetaID::container_upper_bound.GetValue(), 2>,
-	"equal_range",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_equal_range, UDRefl::StrIDRegistry::MetaID::container_equal_range.GetValue(), 2>,
-	"key_comp",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_key_comp, UDRefl::StrIDRegistry::MetaID::container_key_comp.GetValue(), 1>,
-	"value_comp",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_value_comp, UDRefl::StrIDRegistry::MetaID::container_value_comp.GetValue(), 1>,
-	"hash_function",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_hash_function, UDRefl::StrIDRegistry::MetaID::container_hash_function.GetValue(), 1>,
-	"key_eq",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_key_eq, UDRefl::StrIDRegistry::MetaID::container_key_eq.GetValue(), 1>,
-	"get_allocator",& f_meta<UDRefl::ConstObjectPtr, details::CppMeta::t_get_allocator, UDRefl::StrIDRegistry::MetaID::container_get_allocator.GetValue(), 1>,
-
-	"range", f_Ptr_range<UDRefl::ConstObjectPtr>,
+	"range", f_Obj_range<UDRefl::ObjectView>,
 
 	NULL      , NULL
-};
-
-static const struct luaL_Reg lib_ObjectPtr[] = {
-	"new"     , f_Ptr_new<UDRefl::ObjectPtr>,
-
-	NULL      , NULL
-};
-static const struct luaL_Reg meta_ObjectPtr[] = {
-	"GetID"   , details::wrap<&UDRefl::ObjectPtr::GetID,    UDRefl::ObjectPtr>(TSTR("GetID")),
-	"Valid"   , details::wrap<&UDRefl::ObjectPtr::Valid,    UDRefl::ObjectPtr>(TSTR("Valid")),
-	"GetType" , details::wrap<&UDRefl::ObjectPtr::GetType,  UDRefl::ObjectPtr>(TSTR("GetType")),
-	"TypeName", details::wrap<&UDRefl::ObjectPtr::TypeName, UDRefl::ObjectPtr>(TSTR("TypeName")),
-	"AsNumber", f_CPtr_AsNumber<UDRefl::ObjectPtr>,
-
-	"__index", &f_Ptr_index<UDRefl::ObjectPtr>,
-	"__newindex",& f_Ptr_newindex<UDRefl::ObjectPtr>,
-	"__tostring", &f_CPtr_tostring<UDRefl::ObjectPtr>,
-	"__call", &f_meta<UDRefl::ObjectPtr, details::Meta::t_call, UDRefl::StrIDRegistry::MetaID::operator_call.GetValue()>,
-	"__add", &f_meta<UDRefl::ObjectPtr, details::Meta::t_add, UDRefl::StrIDRegistry::MetaID::operator_add.GetValue(), 2>,
-	"__band", &f_meta<UDRefl::ObjectPtr, details::Meta::t_band, UDRefl::StrIDRegistry::MetaID::operator_band.GetValue(), 2>,
-	"__bnot", &f_meta<UDRefl::ObjectPtr, details::Meta::t_bnot, UDRefl::StrIDRegistry::MetaID::operator_bnot.GetValue(), 1>,
-	"__bor", &f_meta<UDRefl::ObjectPtr, details::Meta::t_bor, UDRefl::StrIDRegistry::MetaID::operator_bor.GetValue(), 2>,
-	"__div", &f_meta<UDRefl::ObjectPtr, details::Meta::t_div, UDRefl::StrIDRegistry::MetaID::operator_div.GetValue(), 2>,
-	"__eq", &f_meta<UDRefl::ObjectPtr, details::Meta::t_eq, UDRefl::StrIDRegistry::MetaID::operator_eq.GetValue(), 2, true, bool>,
-	"__le", &f_meta<UDRefl::ObjectPtr, details::Meta::t_le, UDRefl::StrIDRegistry::MetaID::operator_le.GetValue(), 2, true, bool>,
-	"__lt", &f_meta<UDRefl::ObjectPtr, details::Meta::t_lt, UDRefl::StrIDRegistry::MetaID::operator_lt.GetValue(), 2, true, bool>,
-	"__mod", &f_meta<UDRefl::ObjectPtr, details::Meta::t_mod, UDRefl::StrIDRegistry::MetaID::operator_mod.GetValue(), 2>,
-	"__mul", &f_meta<UDRefl::ObjectPtr, details::Meta::t_mul, UDRefl::StrIDRegistry::MetaID::operator_mul.GetValue(), 2>,
-	"__pow", &f_meta<UDRefl::ObjectPtr, details::Meta::t_pow, UDRefl::StrIDRegistry::MetaID::operator_bxor.GetValue(), 2>,
-	"__shl", &f_meta<UDRefl::ObjectPtr, details::Meta::t_shl, UDRefl::StrIDRegistry::MetaID::operator_lshift.GetValue(), 2>,
-	"__shr", &f_meta<UDRefl::ObjectPtr, details::Meta::t_shr, UDRefl::StrIDRegistry::MetaID::operator_rshift.GetValue(), 2>,
-	"__sub", &f_meta<UDRefl::ObjectPtr, details::Meta::t_sub, UDRefl::StrIDRegistry::MetaID::operator_sub.GetValue(), 2>,
-	"__unm", &f_meta<UDRefl::ObjectPtr, details::Meta::t_unm, UDRefl::StrIDRegistry::MetaID::operator_minus.GetValue(), 2>,
-
-	"__assign",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_assign, UDRefl::StrIDRegistry::MetaID::operator_assign.GetValue(), 2>,
-	"__deref", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
-	"__pre_inc", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
-	"__pre_dec", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
-	"__post_dec", &f_meta<UDRefl::ObjectPtr, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
-
-	"tuple_size",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_tuple_size, UDRefl::StrIDRegistry::MetaID::tuple_size.GetValue(), 1, true, std::size_t>,
-	"tuple_get",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_tuple_get, UDRefl::StrIDRegistry::MetaID::tuple_get.GetValue(), 2, true, UDRefl::ObjectPtr>,
-
-	"assign",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_assign, UDRefl::StrIDRegistry::MetaID::container_assign.GetValue()>,
-	"begin",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_begin, UDRefl::StrIDRegistry::MetaID::container_begin.GetValue(), 1>,
-	"cbegin",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_cbegin, UDRefl::StrIDRegistry::MetaID::container_cbegin.GetValue(), 1>,
-	"end_",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_end, UDRefl::StrIDRegistry::MetaID::container_end.GetValue(), 1>,
-	"cend",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_cend, UDRefl::StrIDRegistry::MetaID::container_cend.GetValue(), 1>,
-	"rbegin",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_rbegin, UDRefl::StrIDRegistry::MetaID::container_rbegin.GetValue(), 1>,
-	"crbegin",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_crbegin, UDRefl::StrIDRegistry::MetaID::container_crbegin.GetValue(), 1>,
-	"rend",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_rend, UDRefl::StrIDRegistry::MetaID::container_rend.GetValue(), 1>,
-	"crend",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_crend, UDRefl::StrIDRegistry::MetaID::container_crend.GetValue(), 1>,
-	"at",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_at, UDRefl::StrIDRegistry::MetaID::container_at.GetValue(), 2>,
-	"data",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_data, UDRefl::StrIDRegistry::MetaID::container_data.GetValue(), 1>,
-	"front",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_front, UDRefl::StrIDRegistry::MetaID::container_front.GetValue(), 1>,
-	"back",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_back, UDRefl::StrIDRegistry::MetaID::container_back.GetValue(), 1>,
-	"empty",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_empty, UDRefl::StrIDRegistry::MetaID::container_empty.GetValue(), 1>,
-	"size",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_size, UDRefl::StrIDRegistry::MetaID::container_size.GetValue(), 1>,
-	"max_size",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_max_size, UDRefl::StrIDRegistry::MetaID::container_max_size.GetValue(), 1>,
-	"resize",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_resize, UDRefl::StrIDRegistry::MetaID::container_resize.GetValue(), 1>,
-	"capacity",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_capacity, UDRefl::StrIDRegistry::MetaID::container_capacity.GetValue(), 1>,
-	"bucket_count",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_bucket_count, UDRefl::StrIDRegistry::MetaID::container_bucket_count.GetValue(), 1>,
-	"reserve",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_reserve, UDRefl::StrIDRegistry::MetaID::container_reserve.GetValue(), 2>,
-	"shrink_to_fit",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_shrink_to_fit, UDRefl::StrIDRegistry::MetaID::container_shrink_to_fit.GetValue(), 1>,
-	"clear",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_clear, UDRefl::StrIDRegistry::MetaID::container_clear.GetValue(), 1>,
-	"insert",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_insert, UDRefl::StrIDRegistry::MetaID::container_insert.GetValue()>,
-	"insert_or_assign",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_insert_or_assign, UDRefl::StrIDRegistry::MetaID::container_insert_or_assign.GetValue()>,
-	"erase",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_erase, UDRefl::StrIDRegistry::MetaID::container_erase.GetValue()>,
-	"push_front",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_push_front, UDRefl::StrIDRegistry::MetaID::container_push_front.GetValue(), 2>,
-	"pop_front",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_pop_front, UDRefl::StrIDRegistry::MetaID::container_pop_front.GetValue(), 2>,
-	"push_back",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_push_back, UDRefl::StrIDRegistry::MetaID::container_push_back.GetValue(), 2>,
-	"pop_back",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_pop_back, UDRefl::StrIDRegistry::MetaID::container_pop_back.GetValue(), 2>,
-	"swap",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_swap, UDRefl::StrIDRegistry::MetaID::container_swap.GetValue(), 2>,
-	"merge",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_merge, UDRefl::StrIDRegistry::MetaID::container_merge.GetValue(), 2>,
-	"extract",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_extract, UDRefl::StrIDRegistry::MetaID::container_extract.GetValue(), 2>,
-	"count",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_count, UDRefl::StrIDRegistry::MetaID::container_count.GetValue(), 2>,
-	"find",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_find, UDRefl::StrIDRegistry::MetaID::container_find.GetValue(), 2>,
-	"lower_bound",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_lower_bound, UDRefl::StrIDRegistry::MetaID::container_lower_bound.GetValue(), 2>,
-	"upper_bound",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_upper_bound, UDRefl::StrIDRegistry::MetaID::container_upper_bound.GetValue(), 2>,
-	"equal_range",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_equal_range, UDRefl::StrIDRegistry::MetaID::container_equal_range.GetValue(), 2>,
-	"key_comp",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_key_comp, UDRefl::StrIDRegistry::MetaID::container_key_comp.GetValue(), 1>,
-	"value_comp",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_value_comp, UDRefl::StrIDRegistry::MetaID::container_value_comp.GetValue(), 1>,
-	"hash_function",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_hash_function, UDRefl::StrIDRegistry::MetaID::container_hash_function.GetValue(), 1>,
-	"key_eq",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_key_eq, UDRefl::StrIDRegistry::MetaID::container_key_eq.GetValue(), 1>,
-	"get_allocator",& f_meta<UDRefl::ObjectPtr, details::CppMeta::t_get_allocator, UDRefl::StrIDRegistry::MetaID::container_get_allocator.GetValue(), 1>,
-
-	"range", f_Ptr_range<UDRefl::ObjectPtr>,
-
-	NULL      , NULL
-};
-
-static const struct luaL_Reg lib_SharedConstObject[] = {
-	"new", f_Ptr_new<UDRefl::SharedConstObject>,
-	NULL , NULL
-};
-static const struct luaL_Reg meta_SharedConstObject[] = {
-	"GetID"      , details::wrap<&UDRefl::SharedConstObject::GetID,       UDRefl::SharedConstObject>(TSTR("GetID")),
-	"Valid"      , details::wrap<&UDRefl::SharedConstObject::Valid,       UDRefl::SharedConstObject>(TSTR("Valid")),
-	"AsObjectPtr", details::wrap<&UDRefl::SharedConstObject::AsObjectPtr, UDRefl::SharedConstObject>(TSTR("GetType")),
-	"AsNumber"   , f_CPtr_AsNumber<UDRefl::SharedConstObject>,
-
-	"__gc", details::wrap_dtor<UDRefl::SharedConstObject>(),
-	"__index", &f_Ptr_index<UDRefl::SharedConstObject>,
-	"__tostring", &f_CPtr_tostring<UDRefl::SharedConstObject>,
-	"__call", &f_meta<UDRefl::SharedConstObject, details::Meta::t_call, UDRefl::StrIDRegistry::MetaID::operator_call.GetValue()>,
-	"__add", &f_meta<UDRefl::SharedConstObject, details::Meta::t_add, UDRefl::StrIDRegistry::MetaID::operator_add.GetValue(), 2>,
-	"__band",&f_meta<UDRefl::SharedConstObject, details::Meta::t_band, UDRefl::StrIDRegistry::MetaID::operator_band.GetValue(), 2>,
-	"__bnot",&f_meta<UDRefl::SharedConstObject, details::Meta::t_bnot, UDRefl::StrIDRegistry::MetaID::operator_bnot.GetValue(), 1>,
-	"__bor",&f_meta<UDRefl::SharedConstObject, details::Meta::t_bor, UDRefl::StrIDRegistry::MetaID::operator_bor.GetValue(), 2>,
-	"__div",&f_meta<UDRefl::SharedConstObject, details::Meta::t_div, UDRefl::StrIDRegistry::MetaID::operator_div.GetValue(), 2>,
-	"__eq",&f_meta<UDRefl::SharedConstObject, details::Meta::t_eq, UDRefl::StrIDRegistry::MetaID::operator_eq.GetValue(), 2, true, bool>,
-	"__le",&f_meta<UDRefl::SharedConstObject, details::Meta::t_le, UDRefl::StrIDRegistry::MetaID::operator_le.GetValue(), 2, true, bool>,
-	"__lt",&f_meta<UDRefl::SharedConstObject, details::Meta::t_lt, UDRefl::StrIDRegistry::MetaID::operator_lt.GetValue(), 2, true, bool>,
-	"__mod",&f_meta<UDRefl::SharedConstObject, details::Meta::t_mod, UDRefl::StrIDRegistry::MetaID::operator_mod.GetValue(), 2>,
-	"__mul",&f_meta<UDRefl::SharedConstObject, details::Meta::t_mul, UDRefl::StrIDRegistry::MetaID::operator_mul.GetValue(), 2>,
-	"__pow", &f_meta<UDRefl::SharedConstObject, details::Meta::t_pow, UDRefl::StrIDRegistry::MetaID::operator_bxor.GetValue(), 2>,
-	"__shl",&f_meta<UDRefl::SharedConstObject, details::Meta::t_shl, UDRefl::StrIDRegistry::MetaID::operator_lshift.GetValue(), 2>,
-	"__shr",&f_meta<UDRefl::SharedConstObject, details::Meta::t_shr, UDRefl::StrIDRegistry::MetaID::operator_rshift.GetValue(), 2>,
-	"__sub",&f_meta<UDRefl::SharedConstObject, details::Meta::t_sub, UDRefl::StrIDRegistry::MetaID::operator_sub.GetValue(), 2>,
-	"__unm", &f_meta<UDRefl::SharedConstObject, details::Meta::t_unm, UDRefl::StrIDRegistry::MetaID::operator_minus.GetValue(), 2>,
-
-	"__assign",& f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_assign, UDRefl::StrIDRegistry::MetaID::operator_assign.GetValue(), 2>,
-	"__deref", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
-	"__pre_inc", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
-	"__pre_dec", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
-	"__post_dec", &f_meta<UDRefl::SharedConstObject, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
-
-	"range", f_Ptr_range<UDRefl::SharedConstObject>,
-
-	NULL         , NULL
 };
 
 static const struct luaL_Reg lib_SharedObject[] = {
-	"new"                , f_Ptr_new<UDRefl::SharedObject>,
-
-	NULL                 , NULL
+	"new", f_Obj_new<UDRefl::SharedObject>,
+	NULL, NULL
 };
 static const struct luaL_Reg meta_SharedObject[] = {
-	"GetID"              , details::wrap<&UDRefl::SharedObject::GetID,               UDRefl::SharedObject>(TSTR("GetID")),
-	"Valid"              , details::wrap<&UDRefl::SharedObject::Valid,               UDRefl::SharedObject>(TSTR("Valid")),
-	"AsSharedConstObject", details::wrap<&UDRefl::SharedObject::AsSharedConstObject, UDRefl::SharedObject>(TSTR("AsSharedConstObject")),
-	"AsObjectPtr"        , details::wrap<&UDRefl::SharedObject::AsObjectPtr,         UDRefl::SharedObject>(TSTR("AsObjectPtr")),
-	"AsConstObjectPtr"   , details::wrap<&UDRefl::SharedObject::AsConstObjectPtr,    UDRefl::SharedObject>(TSTR("AsConstObjectPtr")),
-	"AsNumber"           , f_CPtr_AsNumber<UDRefl::SharedObject>,
+	"GetType", details::wrap<&UDRefl::SharedObject::GetType, UDRefl::SharedObject>(TSTR("GetType")),
+	"GetPtr", details::wrap<&UDRefl::SharedObject::GetPtr, UDRefl::SharedObject>(TSTR("GetPtr")),
+	"AsNumber", f_Obj_AsNumber<UDRefl::SharedObject>,
 
 	"__gc", details::wrap_dtor<UDRefl::SharedObject>(),
-	"__index", &f_Ptr_index<UDRefl::SharedObject>,
-	"__newindex",&f_Ptr_newindex<UDRefl::SharedObject>,
-	"__tostring", &f_CPtr_tostring<UDRefl::SharedObject>,
-	"__call", &f_meta<UDRefl::SharedObject, details::Meta::t_call, UDRefl::StrIDRegistry::MetaID::operator_call.GetValue()>,
-	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, UDRefl::StrIDRegistry::MetaID::operator_add.GetValue(), 2>,
-	"__band",&f_meta<UDRefl::SharedObject, details::Meta::t_band, UDRefl::StrIDRegistry::MetaID::operator_band.GetValue(), 2>,
-	"__bnot",&f_meta<UDRefl::SharedObject, details::Meta::t_bnot, UDRefl::StrIDRegistry::MetaID::operator_bnot.GetValue(), 1>,
-	"__bor",&f_meta<UDRefl::SharedObject, details::Meta::t_bor, UDRefl::StrIDRegistry::MetaID::operator_bor.GetValue(), 2>,
-	"__div",&f_meta<UDRefl::SharedObject, details::Meta::t_div, UDRefl::StrIDRegistry::MetaID::operator_div.GetValue(), 2>,
-	"__eq",&f_meta<UDRefl::SharedObject, details::Meta::t_eq, UDRefl::StrIDRegistry::MetaID::operator_eq.GetValue(), 2, true, bool>,
-	"__le",&f_meta<UDRefl::SharedObject, details::Meta::t_le, UDRefl::StrIDRegistry::MetaID::operator_le.GetValue(), 2, true, bool>,
-	"__lt",&f_meta<UDRefl::SharedObject, details::Meta::t_lt, UDRefl::StrIDRegistry::MetaID::operator_lt.GetValue(), 2, true, bool>,
-	"__mod",&f_meta<UDRefl::SharedObject, details::Meta::t_mod, UDRefl::StrIDRegistry::MetaID::operator_mod.GetValue(), 2>,
-	"__mul",&f_meta<UDRefl::SharedObject, details::Meta::t_mul, UDRefl::StrIDRegistry::MetaID::operator_mul.GetValue(), 2>,
-	"__pow", &f_meta<UDRefl::SharedObject, details::Meta::t_pow, UDRefl::StrIDRegistry::MetaID::operator_bxor.GetValue(), 2>,
-	"__shl",&f_meta<UDRefl::SharedObject, details::Meta::t_shl, UDRefl::StrIDRegistry::MetaID::operator_lshift.GetValue(), 2>,
-	"__shr",&f_meta<UDRefl::SharedObject, details::Meta::t_shr, UDRefl::StrIDRegistry::MetaID::operator_rshift.GetValue(), 2>,
-	"__sub",&f_meta<UDRefl::SharedObject, details::Meta::t_sub, UDRefl::StrIDRegistry::MetaID::operator_sub.GetValue(), 2>,
-	"__unm", &f_meta<UDRefl::SharedObject, details::Meta::t_unm, UDRefl::StrIDRegistry::MetaID::operator_minus.GetValue(), 2>,
+	"__index", &f_Obj_index<UDRefl::SharedObject>,
+	"__newindex",&f_Obj_newindex<UDRefl::SharedObject>,
+	"__tostring", &f_Obj_tostring<UDRefl::SharedObject>,
+	"__call", &f_meta<UDRefl::SharedObject, details::Meta::t_call, details::CppMetaName::t_operator_call>,
+	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, details::CppMetaName::t_operator_add, 2>,
+	"__band",&f_meta<UDRefl::SharedObject, details::Meta::t_band, details::CppMetaName::t_operator_band, 2>,
+	"__bnot",&f_meta<UDRefl::SharedObject, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
+	"__bor",&f_meta<UDRefl::SharedObject, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2>,
+	"__div",&f_meta<UDRefl::SharedObject, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
+	"__eq",&f_meta<UDRefl::SharedObject, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, true, bool>,
+	"__le",&f_meta<UDRefl::SharedObject, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, true, bool>,
+	"__lt",&f_meta<UDRefl::SharedObject, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, true, bool>,
+	"__mod",&f_meta<UDRefl::SharedObject, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
+	"__mul",&f_meta<UDRefl::SharedObject, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2>,
+	"__pow", &f_meta<UDRefl::SharedObject, details::Meta::t_pow, details::CppMetaName::t_operator_bxor, 2>,
+	"__shl",&f_meta<UDRefl::SharedObject, details::Meta::t_shl, details::CppMetaName::t_operator_lshift, 2>,
+	"__shr",&f_meta<UDRefl::SharedObject, details::Meta::t_shr, details::CppMetaName::t_operator_rshift, 2>,
+	"__sub",&f_meta<UDRefl::SharedObject, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
+	"__unm", &f_meta<UDRefl::SharedObject, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
 
-	"__assign",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_assign, UDRefl::StrIDRegistry::MetaID::operator_assign.GetValue(), 2>,
-	"__deref", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_deref, UDRefl::StrIDRegistry::MetaID::operator_deref.GetValue(), 1>,
-	"__pre_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_inc, UDRefl::StrIDRegistry::MetaID::operator_pre_inc.GetValue(), 1>,
-	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_dec, UDRefl::StrIDRegistry::MetaID::operator_pre_dec.GetValue(), 1>,
-	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_inc, UDRefl::StrIDRegistry::MetaID::operator_post_inc.GetValue(), 1>,
-	"__post_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_dec, UDRefl::StrIDRegistry::MetaID::operator_post_dec.GetValue(), 1>,
+	"__assign",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
+	"__deref", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
+	"__pre_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
+	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
+	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
+	"__post_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
 
-	"range", f_Ptr_range<UDRefl::SharedObject>,
+	"tuple_size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, true, std::size_t>,
+	"tuple_get",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, true, UDRefl::ObjectView>,
+
+	"begin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
+	"cbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
+	"end_",& f_meta<UDRefl::SharedObject, details::CppMeta::t_end, details::CppMetaName::t_container_end, 1>,
+	"cend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cend, details::CppMetaName::t_container_cend, 1>,
+	"rbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_rbegin, details::CppMetaName::t_container_rbegin, 1>,
+	"crbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_crbegin, details::CppMetaName::t_container_crbegin, 1>,
+	"rend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_rend, details::CppMetaName::t_container_rend, 1>,
+	"crend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_crend, details::CppMetaName::t_container_crend, 1>,
+	"at",& f_meta<UDRefl::SharedObject, details::CppMeta::t_at, details::CppMetaName::t_container_at, 2>,
+	"data",& f_meta<UDRefl::SharedObject, details::CppMeta::t_data, details::CppMetaName::t_container_data, 1>,
+	"front",& f_meta<UDRefl::SharedObject, details::CppMeta::t_front, details::CppMetaName::t_container_front, 1>,
+	"back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
+	"empty",& f_meta<UDRefl::SharedObject, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1>,
+	"size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1>,
+	"capacity",& f_meta<UDRefl::SharedObject, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1>,
+	"bucket_count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1>,
+	"count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2>,
+	"find",& f_meta<UDRefl::SharedObject, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
+	"lower_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
+	"upper_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
+	"equal_range",& f_meta<UDRefl::SharedObject, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
+	"key_comp",& f_meta<UDRefl::SharedObject, details::CppMeta::t_key_comp, details::CppMetaName::t_container_key_comp, 1>,
+	"value_comp",& f_meta<UDRefl::SharedObject, details::CppMeta::t_value_comp, details::CppMetaName::t_container_value_comp, 1>,
+	"hash_function",& f_meta<UDRefl::SharedObject, details::CppMeta::t_hash_function, details::CppMetaName::t_container_hash_function, 1>,
+	"key_eq",& f_meta<UDRefl::SharedObject, details::CppMeta::t_key_eq, details::CppMetaName::t_container_key_eq, 1>,
+	"get_allocator",& f_meta<UDRefl::SharedObject, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
+
+	"range", f_Obj_range<UDRefl::SharedObject>,
 
 	NULL                 , NULL
 };
@@ -1164,21 +1210,21 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 	if (L_argnum <= 0)
 		return L.error("%s::MakeShared : The number of arguments is invalid.", type_name<UDRefl::ReflMngr>().Data());
 
-	TypeID ID;
-	int type = L.type(1);
-	switch (type)
+	Type type;
+	int argtype = L.type(1);
+	switch (argtype)
 	{
 	case LUA_TSTRING:
-		ID = TypeID{ details::get_arg<std::string_view>(L, 1) };
-		break;
-	case LUA_TNUMBER:
-		ID = TypeID{ static_cast<std::size_t>(L.checkinteger(1)) };
+		type = Type{ details::auto_get<std::string_view>(L, 1) };
 		break;
 	case LUA_TUSERDATA:
-		ID = *static_cast<TypeID*>(L.checkudata(1, type_name<TypeID>().Data()));
+		type = *static_cast<Type*>(L.checkudata(1, type_name<Type>().Data()));
 		break;
 	default:
-		break;
+		return L.error("%s::MakeShared : The function doesn't support %s.",
+			type_name<UDRefl::ReflMngr>().Data(),
+			L.typename_(1)
+		);
 	}
 
 	const int argnum = L_argnum - 1;
@@ -1189,7 +1235,7 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 	}
 
 	void* argptr_buffer[UDRefl::MaxArgNum];
-	std::size_t argTypeID_buffer[UDRefl::MaxArgNum];
+	Type argType_buffer[UDRefl::MaxArgNum];
 	std::uint64_t copied_args_buffer[UDRefl::MaxArgNum];
 	std::size_t num_copied_args = 0;
 
@@ -1202,7 +1248,7 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 		{
 			auto arg_buffer = &copied_args_buffer[num_copied_args++];
 			argptr_buffer[i] = arg_buffer;
-			argTypeID_buffer[i] = TypeID_of<bool>.GetValue();
+			argType_buffer[i] = Type_of<bool>;
 			UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
 		}
 		break;
@@ -1210,13 +1256,13 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 			if (L.isinteger(arg)) {
 				auto arg_buffer = &copied_args_buffer[num_copied_args++];
 				argptr_buffer[i] = arg_buffer;
-				argTypeID_buffer[i] = TypeID_of<lua_Integer>.GetValue();
+				argType_buffer[i] = Type_of<lua_Integer>;
 				UDRefl::buffer_as<lua_Integer>(arg_buffer) = static_cast<lua_Integer>(L.tointeger(arg));
 			}
 			else if (L.isnumber(arg)) {
 				auto arg_buffer = &copied_args_buffer[num_copied_args++];
 				argptr_buffer[i] = arg_buffer;
-				argTypeID_buffer[i] = TypeID_of<lua_Number>.GetValue();
+				argType_buffer[i] = Type_of<lua_Number>;
 				UDRefl::buffer_as<lua_Number>(arg_buffer) = static_cast<lua_Number>(L.tonumber(arg));
 			}
 			else
@@ -1226,47 +1272,38 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 			assert(false); // TODO
 			break;
 		case LUA_TUSERDATA:
-			if (void* udata = L.testudata(-1, type_name<UDRefl::ConstObjectPtr>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::ConstObjectPtr*>(udata);
-				auto ref_rhs = rhs.AddConstLValueReference();
-				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
-			}
-			else if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectPtr>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::ObjectPtr*>(udata);
-				auto ref_rhs = rhs.AddLValueReference();
-				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
-			}
-			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedConstObject>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::SharedConstObject*>(udata);
-				auto ref_rhs = rhs->AddConstLValueReference();
-				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
+			if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectView>().Data())) {
+				UDRefl::ObjectView arg = *static_cast<UDRefl::ObjectView*>(udata);
+				auto ref_arg = arg.AddLValueReferenceWeak();
+				argptr_buffer[i] = ref_arg.GetPtr();
+				argType_buffer[i] = ref_arg.GetType();
 			}
 			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::SharedObject*>(udata);
-				auto ref_rhs = rhs->AddLValueReference();
-				argptr_buffer[i] = const_cast<void*>(ref_rhs.GetPtr());
-				argTypeID_buffer[i] = ref_rhs.GetID().GetValue();
+				UDRefl::ObjectView arg = *static_cast<UDRefl::SharedObject*>(udata);
+				auto ref_arg = arg.AddLValueReferenceWeak();
+				argptr_buffer[i] = ref_arg.GetPtr();
+				argType_buffer[i] = ref_arg.GetType();
 			}
 			else if (!L.getmetatable(arg)) {
 				argptr_buffer[i] = L.touserdata(arg);
-				argTypeID_buffer[i] = TypeID_of<void*>.GetValue();
+				argType_buffer[i] = Type_of<void*>;
 			}
 			break;
 		default:
-			break;
+			return L.error("%s::MakeShared : The function doesn't support %s.",
+				type_name<UDRefl::ReflMngr>().Data(),
+				L.typename_(arg)
+			);
 		}
 	}
 
-	UDRefl::SharedObject obj = UDRefl::Mngr->MakeShared(
-		ID,
-		std::span<const TypeID>{reinterpret_cast<TypeID*>(argTypeID_buffer), static_cast<std::size_t>(argnum)},
+	UDRefl::SharedObject obj = UDRefl::Mngr.MakeShared(
+		type,
+		std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)},
 		static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
 	);
 
-	if (!obj.Valid())
+	if (!obj.GetType())
 		return L.error("%s::MakeShared : Fail.", type_name<UDRefl::ReflMngr>().Data());
 	
 	auto* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
@@ -1293,47 +1330,31 @@ static void init_CallHandle(lua_State* L_) {
 	L.pop(1);
 }
 
-static int luaopen_StrID(lua_State* L_) {
+static int luaopen_Name(lua_State* L_) {
 	LuaStateView L{ L_ };
-	L.newmetatable(type_name<StrID>().Data());
+	L.newmetatable(type_name<Name>().Data());
 	L.pushvalue(-1); // duplicate the metatable
 	L.setfield(-2, "__index"); // mt.__index = mt
-	L.setfuncs(lib_StrID, 0);
-	L.newlib(lib_StrID);
+	L.setfuncs(lib_Name, 0);
+	L.newlib(lib_Name);
 	return 1;
 }
 
-static int luaopen_TypeID(lua_State* L_) {
+static int luaopen_Type(lua_State* L_) {
 	LuaStateView L{ L_ };
-	L.newmetatable(type_name<TypeID>().Data());
+	L.newmetatable(type_name<Type>().Data());
 	L.pushvalue(-1); // duplicate the metatable
 	L.setfield(-2, "__index"); // mt.__index = mt
-	L.setfuncs(lib_TypeID, 0);
-	L.newlib(lib_TypeID);
+	L.setfuncs(lib_Type, 0);
+	L.newlib(lib_Type);
 	return 1;
 }
 
-static int luaopen_ConstObjectPtr(lua_State* L_) {
+static int luaopen_ObjectView(lua_State* L_) {
 	LuaStateView L{ L_ };
-	L.newmetatable(type_name<UDRefl::ConstObjectPtr>().Data());
-	L.setfuncs(meta_ConstObjectPtr, 0);
-	L.newlib(lib_ConstObjectPtr);
-	return 1;
-}
-
-static int luaopen_ObjectPtr(lua_State* L_) {
-	LuaStateView L{ L_ };
-	L.newmetatable(type_name<UDRefl::ObjectPtr>().Data());
-	L.setfuncs(meta_ObjectPtr, 0);
-	L.newlib(lib_ObjectPtr);
-	return 1;
-}
-
-static int luaopen_SharedConstObject(lua_State* L_) {
-	LuaStateView L{ L_ };
-	L.newmetatable(type_name<UDRefl::SharedConstObject>().Data());
-	L.setfuncs(meta_SharedConstObject, 0);
-	L.newlib(lib_SharedConstObject);
+	L.newmetatable(type_name<UDRefl::ObjectView>().Data());
+	L.setfuncs(meta_ObjectView, 0);
+	L.newlib(lib_ObjectView);
 	return 1;
 }
 
@@ -1352,12 +1373,10 @@ static int luaopen_ReflMngr(lua_State* L_) {
 }
 
 static const luaL_Reg UDRefl_libs[] = {
-  {"StrID"            , luaopen_StrID},
-  {"TypeID"           , luaopen_TypeID},
-  {details::LibName<UDRefl::ConstObjectPtr   >::value, luaopen_ConstObjectPtr},
-  {details::LibName<UDRefl::ObjectPtr        >::value, luaopen_ObjectPtr},
-  {details::LibName<UDRefl::SharedConstObject>::value, luaopen_SharedConstObject},
-  {details::LibName<UDRefl::SharedObject     >::value, luaopen_SharedObject},
+  {"Name", luaopen_Name},
+  {"Type", luaopen_Type},
+  {details::LibName<UDRefl::ObjectView>::value, luaopen_ObjectView},
+  {details::LibName<UDRefl::SharedObject>::value, luaopen_SharedObject},
   {"ReflMngr"         , luaopen_ReflMngr},
   {NULL               , NULL}
 };
