@@ -2,7 +2,6 @@
 
 struct lua_State;
 
-// ReflMngr
 // Name
 // Type
 // ObjectView

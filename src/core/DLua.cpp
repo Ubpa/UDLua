@@ -390,6 +390,8 @@ namespace Ubpa::details {
 		Name method_name;
 	};
 
+	struct Invalid {}; // for f_meta
+
 	template<typename T>
 	constexpr lua_CFunction wrap_dtor() {
 		return [](lua_State* L_) -> int {
@@ -544,7 +546,7 @@ namespace Ubpa::details {
 	}
 }
 
-template<typename Functor, typename MetaName, typename CppMetaName = Ubpa::TStrC_of<>, int LArgNum = -1, bool ExplictRet = false, typename Ret = void>
+template<typename Functor, typename MetaName, typename CppMetaName = Ubpa::TStrC_of<>, int LArgNum = -1, typename Ret = Ubpa::details::Invalid>
 static int f_meta(lua_State * L_) {
 	LuaStateView L{ L_ };
 
@@ -677,7 +679,7 @@ static int f_meta(lua_State * L_) {
 		}
 	}
 
-	if constexpr (ExplictRet) {
+	if constexpr (!std::is_same_v<Ret, details::Invalid>) {
 		auto invocable_rst = ptr.IsInvocable(method_name, std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)});
 		if (!invocable_rst || invocable_rst.result_desc.type != Type_of<Ret>) {
 			return L.error("%s::%s : The function isn't invocable with arguments or it's return type isn't %s.",
@@ -968,7 +970,7 @@ static int f_Obj_newindex(lua_State* L_) {
 				type_name<Obj>().Data(), L.tostring(-1));
 		}
 	}
-	return 1;
+	return 0;
 }
 
 template<typename Obj>
@@ -1040,192 +1042,11 @@ static int f_Obj_range(lua_State* L_) {
 	return 3;
 }
 
-static const struct luaL_Reg lib_Name[] = {
-	"new", f_T_new<Name>,
-	NULL , NULL
-};
-
-static const struct luaL_Reg meta_Name[] = {
-	"GetID", details::wrap<&Name::GetID, Name>(TSTR("GetID")),
-	"GetView", details::wrap<&Name::GetView, Name>(TSTR("GetView")),
-	"Valid", details::wrap<&Name::Valid, Name>(TSTR("Valid")),
-	"Is", details::wrap<&Name::Is, Name>(TSTR("Is")),
-	NULL, NULL
-};
-
-static const struct luaL_Reg lib_Type[] = {
-	"new", f_T_new<Type>,
-	NULL , NULL
-};
-
-static const struct luaL_Reg meta_Type[] = {
-	"GetID", details::wrap<&Type::GetID, Type>(TSTR("GetID")),
-	"GetName", details::wrap<&Type::GetName, Type>(TSTR("GetName")),
-	"Valid", details::wrap<&Type::Valid, Type>(TSTR("Valid")),
-	"Is", details::wrap<MemFuncOf<Type, bool(std::string_view)const noexcept>::get(&Type::Is), Type>(TSTR("Is")),
-	NULL, NULL
-};
-
-static const struct luaL_Reg lib_ObjectView[] = {
-	"new"     , f_Obj_new<UDRefl::ObjectView>,
-	NULL      , NULL
-};
-static const struct luaL_Reg meta_ObjectView[] = {
-	"GetType", details::wrap<&UDRefl::ObjectView::GetType, UDRefl::ObjectView>(TSTR("GetType")),
-	"GetPtr", details::wrap<&UDRefl::ObjectView::GetPtr, UDRefl::ObjectView>(TSTR("GetPtr")),
-	"AsNumber", f_Obj_AsNumber<UDRefl::ObjectView>,
-
-	"__index", &f_Obj_index<UDRefl::ObjectView>,
-	"__newindex",& f_Obj_newindex<UDRefl::ObjectView>,
-	"__tostring", &f_Obj_tostring<UDRefl::ObjectView>,
-	"__call",  &f_meta<UDRefl::ObjectView, details::Meta::t_call, details::CppMetaName::t_operator_call>,
-	"__add", &f_meta<UDRefl::ObjectView, details::Meta::t_add, details::CppMetaName::t_operator_add, 2>,
-	"__band", &f_meta<UDRefl::ObjectView, details::Meta::t_band, details::CppMetaName::t_operator_band, 2>,
-	"__bnot", &f_meta<UDRefl::ObjectView, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
-	"__bor", &f_meta<UDRefl::ObjectView, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2>,
-	"__bxor", &f_meta<UDRefl::ObjectView, details::Meta::t_bxor, details::CppMetaName::t_operator_bxor, 2>,
-	"__div", &f_meta<UDRefl::ObjectView, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
-	"__eq", &f_meta<UDRefl::ObjectView, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, true, bool>,
-	"__le", &f_meta<UDRefl::ObjectView, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, true, bool>,
-	"__lt", &f_meta<UDRefl::ObjectView, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, true, bool>,
-	"__mod", &f_meta<UDRefl::ObjectView, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
-	"__mul", &f_meta<UDRefl::ObjectView, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2>,
-	"__shl", &f_meta<UDRefl::ObjectView, details::Meta::t_shl, details::CppMetaName::t_operator_lshift, 2>,
-	"__shr", &f_meta<UDRefl::ObjectView, details::Meta::t_shr, details::CppMetaName::t_operator_rshift, 2>,
-	"__sub", &f_meta<UDRefl::ObjectView, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
-	"__unm", &f_meta<UDRefl::ObjectView, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
-
-	"__bool",& f_meta<UDRefl::ObjectView, details::CppMeta::t_op_bool, details::CppMetaName::t_operator_bool, 2>,
-	"__assign",& f_meta<UDRefl::ObjectView, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
-	"__deref", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
-	"__pre_inc", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
-	"__pre_dec", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
-	"__post_inc", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
-	"__post_dec", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
-
-	"advance",& f_meta<UDRefl::ObjectView, details::CppMeta::t_advance, details::CppMetaName::t_iterator_advance, 2, true, void>,
-	"distance",& f_meta<UDRefl::ObjectView, details::CppMeta::t_distance, details::CppMetaName::t_iterator_distance, 2>,
-	"next",& f_meta<UDRefl::ObjectView, details::CppMeta::t_next, details::CppMetaName::t_iterator_next>,
-	"prev",& f_meta<UDRefl::ObjectView, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
-
-	"tuple_size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, true, std::size_t>,
-	"tuple_get",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, true, UDRefl::ObjectView>,
-
-	"begin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
-	"cbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
-	"end_",& f_meta<UDRefl::ObjectView, details::CppMeta::t_end, details::CppMetaName::t_container_end, 1>,
-	"cend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_cend, details::CppMetaName::t_container_cend, 1>,
-	"rbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_rbegin, details::CppMetaName::t_container_rbegin, 1>,
-	"crbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_crbegin, details::CppMetaName::t_container_crbegin, 1>,
-	"rend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_rend, details::CppMetaName::t_container_rend, 1>,
-	"crend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_crend, details::CppMetaName::t_container_crend, 1>,
-	"at",& f_meta<UDRefl::ObjectView, details::CppMeta::t_at, details::CppMetaName::t_container_at, 2>,
-	"data",& f_meta<UDRefl::ObjectView, details::CppMeta::t_data, details::CppMetaName::t_container_data, 1>,
-	"front",& f_meta<UDRefl::ObjectView, details::CppMeta::t_front, details::CppMetaName::t_container_front, 1>,
-	"back",& f_meta<UDRefl::ObjectView, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
-	"empty",& f_meta<UDRefl::ObjectView, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1>,
-	"size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1>,
-	"capacity",& f_meta<UDRefl::ObjectView, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1>,
-	"bucket_count",& f_meta<UDRefl::ObjectView, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1>,
-	"count",& f_meta<UDRefl::ObjectView, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2>,
-	"find",& f_meta<UDRefl::ObjectView, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
-	"lower_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
-	"upper_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
-	"equal_range",& f_meta<UDRefl::ObjectView, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
-	"key_comp",& f_meta<UDRefl::ObjectView, details::CppMeta::t_key_comp, details::CppMetaName::t_container_key_comp, 1>,
-	"value_comp",& f_meta<UDRefl::ObjectView, details::CppMeta::t_value_comp, details::CppMetaName::t_container_value_comp, 1>,
-	"hash_function",& f_meta<UDRefl::ObjectView, details::CppMeta::t_hash_function, details::CppMetaName::t_container_hash_function, 1>,
-	"key_eq",& f_meta<UDRefl::ObjectView, details::CppMeta::t_key_eq, details::CppMetaName::t_container_key_eq, 1>,
-	"get_allocator",& f_meta<UDRefl::ObjectView, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
-
-	"range", f_Obj_range<UDRefl::ObjectView>,
-
-	NULL      , NULL
-};
-
-static const struct luaL_Reg lib_SharedObject[] = {
-	"new", f_Obj_new<UDRefl::SharedObject>,
-	NULL, NULL
-};
-static const struct luaL_Reg meta_SharedObject[] = {
-	"GetType", details::wrap<&UDRefl::SharedObject::GetType, UDRefl::SharedObject>(TSTR("GetType")),
-	"GetPtr", details::wrap<&UDRefl::SharedObject::GetPtr, UDRefl::SharedObject>(TSTR("GetPtr")),
-	"AsNumber", f_Obj_AsNumber<UDRefl::SharedObject>,
-
-	"__gc", details::wrap_dtor<UDRefl::SharedObject>(),
-	"__index", &f_Obj_index<UDRefl::SharedObject>,
-	"__newindex",&f_Obj_newindex<UDRefl::SharedObject>,
-	"__tostring", &f_Obj_tostring<UDRefl::SharedObject>,
-	"__call", &f_meta<UDRefl::SharedObject, details::Meta::t_call, details::CppMetaName::t_operator_call>,
-	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, details::CppMetaName::t_operator_add, 2>,
-	"__band",&f_meta<UDRefl::SharedObject, details::Meta::t_band, details::CppMetaName::t_operator_band, 2>,
-	"__bnot",&f_meta<UDRefl::SharedObject, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
-	"__bor",&f_meta<UDRefl::SharedObject, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2>,
-	"__div",&f_meta<UDRefl::SharedObject, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
-	"__eq",&f_meta<UDRefl::SharedObject, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, true, bool>,
-	"__le",&f_meta<UDRefl::SharedObject, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, true, bool>,
-	"__lt",&f_meta<UDRefl::SharedObject, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, true, bool>,
-	"__mod",&f_meta<UDRefl::SharedObject, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
-	"__mul",&f_meta<UDRefl::SharedObject, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2>,
-	"__pow", &f_meta<UDRefl::SharedObject, details::Meta::t_pow, details::CppMetaName::t_operator_bxor, 2>,
-	"__shl",&f_meta<UDRefl::SharedObject, details::Meta::t_shl, details::CppMetaName::t_operator_lshift, 2>,
-	"__shr",&f_meta<UDRefl::SharedObject, details::Meta::t_shr, details::CppMetaName::t_operator_rshift, 2>,
-	"__sub",&f_meta<UDRefl::SharedObject, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
-	"__unm", &f_meta<UDRefl::SharedObject, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
-
-	"__bool",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_bool, details::CppMetaName::t_operator_bool, 2>,
-	"__assign",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
-	"__deref", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
-	"__pre_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
-	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
-	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
-	"__post_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
-
-	"advance",& f_meta<UDRefl::SharedObject, details::CppMeta::t_advance, details::CppMetaName::t_iterator_advance, 2, true, void>,
-	"distance",& f_meta<UDRefl::SharedObject, details::CppMeta::t_distance, details::CppMetaName::t_iterator_distance, 2>,
-	"next",& f_meta<UDRefl::SharedObject, details::CppMeta::t_next, details::CppMetaName::t_iterator_next>,
-	"prev",& f_meta<UDRefl::SharedObject, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
-
-	"tuple_size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, true, std::size_t>,
-	"tuple_get",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, true, UDRefl::ObjectView>,
-
-	"begin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
-	"cbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
-	"end_",& f_meta<UDRefl::SharedObject, details::CppMeta::t_end, details::CppMetaName::t_container_end, 1>,
-	"cend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cend, details::CppMetaName::t_container_cend, 1>,
-	"rbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_rbegin, details::CppMetaName::t_container_rbegin, 1>,
-	"crbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_crbegin, details::CppMetaName::t_container_crbegin, 1>,
-	"rend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_rend, details::CppMetaName::t_container_rend, 1>,
-	"crend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_crend, details::CppMetaName::t_container_crend, 1>,
-	"at",& f_meta<UDRefl::SharedObject, details::CppMeta::t_at, details::CppMetaName::t_container_at, 2>,
-	"data",& f_meta<UDRefl::SharedObject, details::CppMeta::t_data, details::CppMetaName::t_container_data, 1>,
-	"front",& f_meta<UDRefl::SharedObject, details::CppMeta::t_front, details::CppMetaName::t_container_front, 1>,
-	"back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
-	"empty",& f_meta<UDRefl::SharedObject, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1>,
-	"size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1>,
-	"capacity",& f_meta<UDRefl::SharedObject, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1>,
-	"bucket_count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1>,
-	"count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2>,
-	"find",& f_meta<UDRefl::SharedObject, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
-	"lower_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
-	"upper_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
-	"equal_range",& f_meta<UDRefl::SharedObject, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
-	"key_comp",& f_meta<UDRefl::SharedObject, details::CppMeta::t_key_comp, details::CppMetaName::t_container_key_comp, 1>,
-	"value_comp",& f_meta<UDRefl::SharedObject, details::CppMeta::t_value_comp, details::CppMetaName::t_container_value_comp, 1>,
-	"hash_function",& f_meta<UDRefl::SharedObject, details::CppMeta::t_hash_function, details::CppMetaName::t_container_hash_function, 1>,
-	"key_eq",& f_meta<UDRefl::SharedObject, details::CppMeta::t_key_eq, details::CppMetaName::t_container_key_eq, 1>,
-	"get_allocator",& f_meta<UDRefl::SharedObject, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
-
-	"range", f_Obj_range<UDRefl::SharedObject>,
-
-	NULL                 , NULL
-};
-
-static int f_ReflMngr_MakeShared(lua_State* L_) {
+static int f_SharedObject_new(lua_State* L_) {
 	LuaStateView L{ L_ };
 	const int L_argnum = L.gettop();
 	if (L_argnum <= 0)
-		return L.error("%s::MakeShared : The number of arguments is invalid.", type_name<UDRefl::ReflMngr>().Data());
+		return L.error("%s::new : The number of arguments is invalid.", type_name<UDRefl::SharedObject>().Data());
 
 	Type type;
 	int argtype = L.type(1);
@@ -1238,8 +1059,8 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 		type = *static_cast<Type*>(L.checkudata(1, type_name<Type>().Data()));
 		break;
 	default:
-		return L.error("%s::MakeShared : The function doesn't support %s.",
-			type_name<UDRefl::ReflMngr>().Data(),
+		return L.error("%s::new : The function doesn't support %s.",
+			type_name<UDRefl::SharedObject>().Data(),
 			L.typename_(1)
 		);
 	}
@@ -1247,8 +1068,8 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 	const int argnum = L_argnum - 1;
 
 	if (argnum > UDRefl::MaxArgNum) {
-		return L.error("%s::MakeShared : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
-			type_name<UDRefl::ReflMngr>().Data(), argnum, static_cast<lua_Integer>(UDRefl::MaxArgNum));
+		return L.error("%s::new : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
+			type_name<UDRefl::SharedObject>().Data(), argnum, static_cast<lua_Integer>(UDRefl::MaxArgNum));
 	}
 
 	void* argptr_buffer[UDRefl::MaxArgNum];
@@ -1312,8 +1133,8 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 			}
 			break;
 		default:
-			return L.error("%s::MakeShared : The function doesn't support %s.",
-				type_name<UDRefl::ReflMngr>().Data(),
+			return L.error("%s::new : The function doesn't support %s.",
+				type_name<UDRefl::SharedObject>().Data(),
 				L.typename_(arg)
 			);
 		}
@@ -1326,8 +1147,8 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 	);
 
 	if (!obj.GetType())
-		return L.error("%s::MakeShared : Fail.", type_name<UDRefl::ReflMngr>().Data());
-	
+		return L.error("%s::new : Fail.", type_name<UDRefl::SharedObject>().Data());
+
 	auto* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
 	new(buffer)UDRefl::SharedObject{ std::move(obj) };
 
@@ -1337,9 +1158,185 @@ static int f_ReflMngr_MakeShared(lua_State* L_) {
 	return 1;
 }
 
-static const struct luaL_Reg lib_ReflMngr[] = {
-	"MakeShared", f_ReflMngr_MakeShared,
-	NULL        , NULL
+static const struct luaL_Reg lib_Name[] = {
+	"new", f_T_new<Name>,
+	NULL , NULL
+};
+
+static const struct luaL_Reg meta_Name[] = {
+	"GetID", details::wrap<&Name::GetID, Name>(TSTR("GetID")),
+	"GetView", details::wrap<&Name::GetView, Name>(TSTR("GetView")),
+	"Valid", details::wrap<&Name::Valid, Name>(TSTR("Valid")),
+	"Is", details::wrap<&Name::Is, Name>(TSTR("Is")),
+	NULL, NULL
+};
+
+static const struct luaL_Reg lib_Type[] = {
+	"new", f_T_new<Type>,
+	NULL , NULL
+};
+
+static const struct luaL_Reg meta_Type[] = {
+	"GetID", details::wrap<&Type::GetID, Type>(TSTR("GetID")),
+	"GetName", details::wrap<&Type::GetName, Type>(TSTR("GetName")),
+	"Valid", details::wrap<&Type::Valid, Type>(TSTR("Valid")),
+	"Is", details::wrap<MemFuncOf<Type, bool(std::string_view)const noexcept>::get(&Type::Is), Type>(TSTR("Is")),
+	NULL, NULL
+};
+
+static const struct luaL_Reg lib_ObjectView[] = {
+	"new"     , f_Obj_new<UDRefl::ObjectView>,
+	NULL      , NULL
+};
+static const struct luaL_Reg meta_ObjectView[] = {
+	"GetType", details::wrap<&UDRefl::ObjectView::GetType, UDRefl::ObjectView>(TSTR("GetType")),
+	"GetPtr", details::wrap<&UDRefl::ObjectView::GetPtr, UDRefl::ObjectView>(TSTR("GetPtr")),
+	"AsNumber", f_Obj_AsNumber<UDRefl::ObjectView>,
+
+	"__index", &f_Obj_index<UDRefl::ObjectView>,
+	"__newindex",& f_Obj_newindex<UDRefl::ObjectView>,
+	"__tostring", &f_Obj_tostring<UDRefl::ObjectView>,
+	"__call",  &f_meta<UDRefl::ObjectView, details::Meta::t_call, details::CppMetaName::t_operator_call>,
+	"__add", &f_meta<UDRefl::ObjectView, details::Meta::t_add, details::CppMetaName::t_operator_add, 2>,
+	"__band", &f_meta<UDRefl::ObjectView, details::Meta::t_band, details::CppMetaName::t_operator_band, 2>,
+	"__bnot", &f_meta<UDRefl::ObjectView, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
+	"__bor", &f_meta<UDRefl::ObjectView, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2>,
+	"__bxor", &f_meta<UDRefl::ObjectView, details::Meta::t_bxor, details::CppMetaName::t_operator_bxor, 2>,
+	"__div", &f_meta<UDRefl::ObjectView, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
+	"__eq", &f_meta<UDRefl::ObjectView, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, bool>,
+	"__le", &f_meta<UDRefl::ObjectView, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, bool>,
+	"__lt", &f_meta<UDRefl::ObjectView, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, bool>,
+	"__mod", &f_meta<UDRefl::ObjectView, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
+	"__mul", &f_meta<UDRefl::ObjectView, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2>,
+	"__shl", &f_meta<UDRefl::ObjectView, details::Meta::t_shl, details::CppMetaName::t_operator_lshift, 2>,
+	"__shr", &f_meta<UDRefl::ObjectView, details::Meta::t_shr, details::CppMetaName::t_operator_rshift, 2>,
+	"__sub", &f_meta<UDRefl::ObjectView, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
+	"__unm", &f_meta<UDRefl::ObjectView, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
+
+	"__bool",& f_meta<UDRefl::ObjectView, details::CppMeta::t_op_bool, details::CppMetaName::t_operator_bool, 2, bool>,
+	"__assign",& f_meta<UDRefl::ObjectView, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
+	"__deref", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
+	"__pre_inc", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
+	"__pre_dec", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
+	"__post_inc", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
+	"__post_dec", &f_meta<UDRefl::ObjectView, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
+
+	"advance",& f_meta<UDRefl::ObjectView, details::CppMeta::t_advance, details::CppMetaName::t_iterator_advance, 2, void>,
+	"distance",& f_meta<UDRefl::ObjectView, details::CppMeta::t_distance, details::CppMetaName::t_iterator_distance, 2, std::size_t>,
+	"next",& f_meta<UDRefl::ObjectView, details::CppMeta::t_next, details::CppMetaName::t_iterator_next>,
+	"prev",& f_meta<UDRefl::ObjectView, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
+
+	"tuple_size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, std::size_t>,
+	"tuple_get",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, UDRefl::ObjectView>,
+
+	"begin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
+	"cbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
+	"end_",& f_meta<UDRefl::ObjectView, details::CppMeta::t_end, details::CppMetaName::t_container_end, 1>,
+	"cend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_cend, details::CppMetaName::t_container_cend, 1>,
+	"rbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_rbegin, details::CppMetaName::t_container_rbegin, 1>,
+	"crbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_crbegin, details::CppMetaName::t_container_crbegin, 1>,
+	"rend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_rend, details::CppMetaName::t_container_rend, 1>,
+	"crend",& f_meta<UDRefl::ObjectView, details::CppMeta::t_crend, details::CppMetaName::t_container_crend, 1>,
+	"at",& f_meta<UDRefl::ObjectView, details::CppMeta::t_at, details::CppMetaName::t_container_at, 2>,
+	"data",& f_meta<UDRefl::ObjectView, details::CppMeta::t_data, details::CppMetaName::t_container_data, 1>,
+	"front",& f_meta<UDRefl::ObjectView, details::CppMeta::t_front, details::CppMetaName::t_container_front, 1>,
+	"back",& f_meta<UDRefl::ObjectView, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
+	"empty",& f_meta<UDRefl::ObjectView, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1, bool>,
+	"size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1, std::size_t>,
+	"capacity",& f_meta<UDRefl::ObjectView, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1, std::size_t>,
+	"bucket_count",& f_meta<UDRefl::ObjectView, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1, std::size_t>,
+	"count",& f_meta<UDRefl::ObjectView, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2, std::size_t>,
+	"find",& f_meta<UDRefl::ObjectView, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
+	"lower_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
+	"upper_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
+	"equal_range",& f_meta<UDRefl::ObjectView, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
+	"key_comp",& f_meta<UDRefl::ObjectView, details::CppMeta::t_key_comp, details::CppMetaName::t_container_key_comp, 1>,
+	"value_comp",& f_meta<UDRefl::ObjectView, details::CppMeta::t_value_comp, details::CppMetaName::t_container_value_comp, 1>,
+	"hash_function",& f_meta<UDRefl::ObjectView, details::CppMeta::t_hash_function, details::CppMetaName::t_container_hash_function, 1>,
+	"key_eq",& f_meta<UDRefl::ObjectView, details::CppMeta::t_key_eq, details::CppMetaName::t_container_key_eq, 1>,
+	"get_allocator",& f_meta<UDRefl::ObjectView, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
+
+	"range", f_Obj_range<UDRefl::ObjectView>,
+
+	NULL      , NULL
+};
+
+static const struct luaL_Reg lib_SharedObject[] = {
+	"new", f_SharedObject_new,
+	NULL, NULL
+};
+static const struct luaL_Reg meta_SharedObject[] = {
+	"GetType", details::wrap<&UDRefl::SharedObject::GetType, UDRefl::SharedObject>(TSTR("GetType")),
+	"GetPtr", details::wrap<&UDRefl::SharedObject::GetPtr, UDRefl::SharedObject>(TSTR("GetPtr")),
+	"AsNumber", f_Obj_AsNumber<UDRefl::SharedObject>,
+
+	"__gc", details::wrap_dtor<UDRefl::SharedObject>(),
+	"__index", &f_Obj_index<UDRefl::SharedObject>,
+	"__newindex",&f_Obj_newindex<UDRefl::SharedObject>,
+	"__tostring", &f_Obj_tostring<UDRefl::SharedObject>,
+	"__call", &f_meta<UDRefl::SharedObject, details::Meta::t_call, details::CppMetaName::t_operator_call>,
+	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, details::CppMetaName::t_operator_add, 2>,
+	"__band",&f_meta<UDRefl::SharedObject, details::Meta::t_band, details::CppMetaName::t_operator_band, 2>,
+	"__bnot",&f_meta<UDRefl::SharedObject, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
+	"__bor",&f_meta<UDRefl::SharedObject, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2>,
+	"__div",&f_meta<UDRefl::SharedObject, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
+	"__eq",&f_meta<UDRefl::SharedObject, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, bool>,
+	"__le",&f_meta<UDRefl::SharedObject, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, bool>,
+	"__lt",&f_meta<UDRefl::SharedObject, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, bool>,
+	"__mod",&f_meta<UDRefl::SharedObject, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
+	"__mul",&f_meta<UDRefl::SharedObject, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2>,
+	"__pow", &f_meta<UDRefl::SharedObject, details::Meta::t_pow, details::CppMetaName::t_operator_bxor, 2>,
+	"__shl",&f_meta<UDRefl::SharedObject, details::Meta::t_shl, details::CppMetaName::t_operator_lshift, 2>,
+	"__shr",&f_meta<UDRefl::SharedObject, details::Meta::t_shr, details::CppMetaName::t_operator_rshift, 2>,
+	"__sub",&f_meta<UDRefl::SharedObject, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
+	"__unm", &f_meta<UDRefl::SharedObject, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
+
+	"__bool",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_bool, details::CppMetaName::t_operator_bool, 2, bool>,
+	"__assign",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
+	"__deref", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
+	"__pre_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
+	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
+	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
+	"__post_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
+
+	"advance",& f_meta<UDRefl::SharedObject, details::CppMeta::t_advance, details::CppMetaName::t_iterator_advance, 2, void>,
+	"distance",& f_meta<UDRefl::SharedObject, details::CppMeta::t_distance, details::CppMetaName::t_iterator_distance, 2, std::size_t>,
+	"next",& f_meta<UDRefl::SharedObject, details::CppMeta::t_next, details::CppMetaName::t_iterator_next>,
+	"prev",& f_meta<UDRefl::SharedObject, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
+
+	"tuple_size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, std::size_t>,
+	"tuple_get",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, UDRefl::ObjectView>,
+
+	"begin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
+	"cbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
+	"end_",& f_meta<UDRefl::SharedObject, details::CppMeta::t_end, details::CppMetaName::t_container_end, 1>,
+	"cend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cend, details::CppMetaName::t_container_cend, 1>,
+	"rbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_rbegin, details::CppMetaName::t_container_rbegin, 1>,
+	"crbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_crbegin, details::CppMetaName::t_container_crbegin, 1>,
+	"rend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_rend, details::CppMetaName::t_container_rend, 1>,
+	"crend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_crend, details::CppMetaName::t_container_crend, 1>,
+	"at",& f_meta<UDRefl::SharedObject, details::CppMeta::t_at, details::CppMetaName::t_container_at, 2>,
+	"data",& f_meta<UDRefl::SharedObject, details::CppMeta::t_data, details::CppMetaName::t_container_data, 1>,
+	"front",& f_meta<UDRefl::SharedObject, details::CppMeta::t_front, details::CppMetaName::t_container_front, 1>,
+	"back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
+	"empty",& f_meta<UDRefl::SharedObject, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1, bool>,
+	"size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1, std::size_t>,
+	"capacity",& f_meta<UDRefl::SharedObject, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1, std::size_t>,
+	"bucket_count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1, std::size_t>,
+	"count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2, std::size_t>,
+	"find",& f_meta<UDRefl::SharedObject, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
+	"lower_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
+	"upper_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
+	"equal_range",& f_meta<UDRefl::SharedObject, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
+	"key_comp",& f_meta<UDRefl::SharedObject, details::CppMeta::t_key_comp, details::CppMetaName::t_container_key_comp, 1>,
+	"value_comp",& f_meta<UDRefl::SharedObject, details::CppMeta::t_value_comp, details::CppMetaName::t_container_value_comp, 1>,
+	"hash_function",& f_meta<UDRefl::SharedObject, details::CppMeta::t_hash_function, details::CppMetaName::t_container_hash_function, 1>,
+	"key_eq",& f_meta<UDRefl::SharedObject, details::CppMeta::t_key_eq, details::CppMetaName::t_container_key_eq, 1>,
+	"get_allocator",& f_meta<UDRefl::SharedObject, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
+
+	"range", f_Obj_range<UDRefl::SharedObject>,
+
+	NULL                 , NULL
 };
 
 static void init_CallHandle(lua_State* L_) {
@@ -1355,9 +1352,9 @@ static void init_CallHandle(lua_State* L_) {
 static int luaopen_Name(lua_State* L_) {
 	LuaStateView L{ L_ };
 	L.newmetatable(type_name<Name>().Data());
-	L.pushvalue(-1); // duplicate the metatable
-	L.setfield(-2, "__index"); // mt.__index = mt
-	L.setfuncs(lib_Name, 0);
+	L.setfuncs(meta_Name, 0);
+	L.pushvalue(-1);
+	L.setfield(-2, "__index");
 	L.newlib(lib_Name);
 	return 1;
 }
@@ -1365,9 +1362,9 @@ static int luaopen_Name(lua_State* L_) {
 static int luaopen_Type(lua_State* L_) {
 	LuaStateView L{ L_ };
 	L.newmetatable(type_name<Type>().Data());
-	L.pushvalue(-1); // duplicate the metatable
-	L.setfield(-2, "__index"); // mt.__index = mt
-	L.setfuncs(lib_Type, 0);
+	L.setfuncs(meta_Type, 0);
+	L.pushvalue(-1);
+	L.setfield(-2, "__index");
 	L.newlib(lib_Type);
 	return 1;
 }
@@ -1377,6 +1374,12 @@ static int luaopen_ObjectView(lua_State* L_) {
 	L.newmetatable(type_name<UDRefl::ObjectView>().Data());
 	L.setfuncs(meta_ObjectView, 0);
 	L.newlib(lib_ObjectView);
+	{ // register Global
+		void* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
+		new(buffer) UDRefl::ObjectView{ UDRefl::Global };
+		L.setmetatable(type_name<UDRefl::ObjectView>().Data());
+		L.setfield(-2, "Global");
+	}
 	return 1;
 }
 
@@ -1388,18 +1391,11 @@ static int luaopen_SharedObject(lua_State* L_) {
 	return 1;
 }
 
-static int luaopen_ReflMngr(lua_State* L_) {
-	LuaStateView L{ L_ };
-	L.newlib(lib_ReflMngr);
-	return 1;
-}
-
 static const luaL_Reg UDRefl_libs[] = {
   {"Name", luaopen_Name},
   {"Type", luaopen_Type},
   {"ObjectView", luaopen_ObjectView},
   {"SharedObject", luaopen_SharedObject},
-  {"ReflMngr", luaopen_ReflMngr},
   {NULL, NULL}
 };
 

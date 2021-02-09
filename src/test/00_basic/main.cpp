@@ -64,10 +64,14 @@ int main() {
 	UDRefl::Mngr.RegisterType<std::array<float, 2>>();
 
 	/*
-	v = ReflMngr.MakeShared("vec", 2, 3)
-	arr = v:to_array():AsObjectPtr()
-	iter = arr:begin()
-	while iter ~= arr:end_() do print(iter:__deref()); iter:__pre_inc(); end
+	print(ObjectView.Global:GetType():GetName())
+	v = SharedObject.new("vec", 2, 3)
+	v2 = v + v
+	v2:offset(2)
+	arr = v2:to_array()
+	iter = arr:cbegin()
+	while iter ~= arr:cend() do print(iter:__deref()); iter:__pre_inc(); end
+	for iter in arr:range() do print(iter:__deref()); end
 	*/
 
 	char buffer[256];
