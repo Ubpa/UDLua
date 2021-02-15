@@ -1390,6 +1390,40 @@ static int f_Obj_range(lua_State* L_) {
 }
 
 template<typename Obj>
+static int f_Obj_concat(lua_State* L_) {
+	LuaStateView L{ L_ };
+
+	if (L.gettop() != 2) {
+		return L.error("%s::__concat : The number of arguments is invalid. The function needs 2 argument.",
+			type_name<Obj>().Data());
+	}
+
+	if (L.testudata(1, type_name<Obj>().Data())) {
+		L.pushcfunction(f_Obj_tostring<Obj>);
+		L.rotate(1, -1);
+		int error = L.pcall(1, 1, 0);
+		if (error) {
+			return L.error("%s::__concat : The object call __tostring failed.\n",
+				type_name<Obj>().Data(), L.tostring(-1));
+		}
+		L.rotate(1, 1);
+	}
+	else {
+		L.rotate(1, 1);
+		L.pushcfunction(f_Obj_tostring<Obj>);
+		L.rotate(1, -1);
+		int error = L.pcall(1, 1, 0);
+		if (error) {
+			return L.error("%s::__concat : The object call __tostring failed.\n",
+				type_name<Obj>().Data(), L.tostring(-1));
+		}
+	}
+
+	L.concat(2);
+	return 1;
+}
+
+template<typename Obj>
 static int f_Obj_tuple_bind(lua_State* L_) {
 	LuaStateView L{ L_ };
 	auto obj = details::auto_get<UDRefl::ObjectView>(L, 1);
@@ -1491,6 +1525,7 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"__index", &f_Obj_index<UDRefl::ObjectView>,
 	"__newindex",& f_Obj_newindex<UDRefl::ObjectView>,
 	"__tostring", &f_Obj_tostring<UDRefl::ObjectView>,
+	"__concat",& f_Obj_concat<UDRefl::ObjectView>,
 	"__call",  &f_meta<UDRefl::ObjectView, details::Meta::t_call, details::CppMetaName::t_operator_call>,
 	"__add", &f_meta<UDRefl::ObjectView, details::Meta::t_add, details::CppMetaName::t_operator_add, 2, details::Invalid, true>,
 	"__band", &f_meta<UDRefl::ObjectView, details::Meta::t_band, details::CppMetaName::t_operator_band, 2, details::Invalid, true>,
@@ -1574,6 +1609,7 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"__index", &f_Obj_index<UDRefl::SharedObject>,
 	"__newindex",&f_Obj_newindex<UDRefl::SharedObject>,
 	"__tostring", &f_Obj_tostring<UDRefl::SharedObject>,
+	"__concat", &f_Obj_concat<UDRefl::SharedObject>,
 	"__call", &f_meta<UDRefl::SharedObject, details::Meta::t_call, details::CppMetaName::t_operator_call>,
 	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, details::CppMetaName::t_operator_add, 2, details::Invalid, true>,
 	"__band",&f_meta<UDRefl::SharedObject, details::Meta::t_band, details::CppMetaName::t_operator_band, 2, details::Invalid, true>,
