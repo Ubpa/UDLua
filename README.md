@@ -43,13 +43,13 @@ struct vec {
 
 ```lua
 for field_iter in ObjectView.ReflMngr:GetFields(vec):range() do
-    local field = field_iter:__deref()
-    print(field.name:GetView())
+  local field = field_iter:__deref()
+  print(field.name:GetView())
 end
 
 for method_iter in ObjectView.ReflMngr:GetMethods(vec):range() do
-    local method = method_iter:__deref()
-    print(method.name:GetView())
+  local method = method_iter:__deref()
+  print(method.name:GetView())
 end
 ```
 
@@ -76,7 +76,12 @@ print("norm2: " .. tostring(v:norm2()))
 
 ### Iterate over varables
 
-TODO
+```lua
+for iter in v:GetTypeFieldVars():range() do
+  local type, field, var = iter:__deref():tuple_bind()
+  print(tostring(field.name:GetView()) .. ": ".. tostring(var))
+end
+```
 
 ## Compiler compatibility
 

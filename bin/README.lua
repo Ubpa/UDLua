@@ -25,4 +25,7 @@ print("x: " .. tostring(v.x))
 print("norm2: " .. tostring(v:norm2()))
 
 -- Iterate over variables
--- TODO
+for iter in v:GetTypeFieldVars():range() do
+    local type, field, var = iter:__deref():tuple_bind()
+    print(tostring(field.name:GetView()) .. ": ".. tostring(var))
+end

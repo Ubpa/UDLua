@@ -383,7 +383,79 @@ namespace Ubpa::details {
 		using t_container_key_eq = decltype(container_key_eq);
 		using t_container_get_allocator = decltype(container_get_allocator);
 	}
+
+	namespace ObjectMeta {
+		static constexpr auto GetTypeFieldVars = TSTR("GetTypeFieldVars");
+		static constexpr auto GetVars = TSTR("GetVars");
+
+		using t_GetTypeFieldVars = decltype(GetTypeFieldVars);
+		using t_GetVars = decltype(GetVars);
+	}
 }
+
+//static void stack_dump(lua_State* L) {
+//	printf("\n------ stack dump begin ------\n");
+//	for (int i = 1; i <= lua_gettop(L); ++i) {
+//		int t = lua_type(L, i);
+//		switch (t) {
+//		case LUA_TNONE: {
+//			printf("LUA_TNONE\n");
+//		}break;
+//
+//		case LUA_TNIL: {
+//			printf("LUA_TNIL\n");
+//		}break;
+//
+//		case LUA_TBOOLEAN: {
+//			printf("LUA_TBOOLEAN : %s\n", lua_toboolean(L, i) ? "true" : "false");
+//		}break;
+//
+//		case LUA_TLIGHTUSERDATA: {
+//			printf("LUA_TLIGHTUSERDATA\n");
+//		}break;
+//
+//		case LUA_TNUMBER: {
+//			//ÕûÐÎ
+//			if (lua_isinteger(L, i)) {
+//				printf("LUA_TNUMBER integer : %lld \n", lua_tointeger(L, i));
+//			}
+//			else if (lua_isnumber(L, i)) {
+//				printf("LUA_TNUMBER number: %g\n", lua_tonumber(L, i));
+//			}
+//		}break;
+//
+//		case LUA_TSTRING: {
+//			printf("LUA_TSTRING : %s\n", lua_tostring(L, i));
+//		}break;
+//
+//		case LUA_TTABLE: {
+//			printf("LUA_TTABLE\n");
+//		}break;
+//
+//		case LUA_TFUNCTION: {
+//			printf("LUA_TFUNCTION\n");
+//		}break;
+//
+//		case LUA_TUSERDATA: {
+//			printf("LUA_TUSERDATA\n");
+//		}break;
+//
+//		case LUA_TTHREAD: {
+//			printf("LUA_TTHREAD\n");
+//		}break;
+//
+//		case LUA_NUMTAGS: {
+//			printf("LUA_NUMTAGS\n");
+//		}break;
+//
+//		default: {
+//			printf("%s\n", lua_typename(L, t));
+//		}break;
+//		}
+//	}
+//
+//	std::cout << "------ stack dump end ------" << std::endl;
+//}
 
 namespace Ubpa::details {
 	struct ArgStack {
@@ -435,6 +507,19 @@ namespace Ubpa::details {
 				L.error("auto_get : The %dth argument (%s) isn't convertible to %s.",
 					idx, L.typename_(idx), type_name<T>().Data());
 				return T{};
+			}
+		}
+		else if constexpr (std::is_same_v<T, UDRefl::ObjectView>) {
+			if (void* obj = L.testudata(idx, type_name<UDRefl::ObjectView>().Data()))
+				return *reinterpret_cast<UDRefl::ObjectView*>(obj);
+			else if (void* obj = L.testudata(idx, type_name<UDRefl::SharedObject>().Data())) {
+				const auto& sobj = *reinterpret_cast<UDRefl::SharedObject*>(obj);
+				return { sobj.GetType(), sobj.GetPtr() };
+			}
+			else {
+				L.error("auto_get : The %dth argument (%s) isn't convertible to %s.",
+					idx, L.typename_(idx), type_name<T>().Data());
+				return {};
 			}
 		}
 		else
@@ -924,6 +1009,26 @@ static int f_meta(lua_State * L_) {
 	}
 }
 
+template<typename T, typename ObjectMeta, int LArgNum = -1, typename Ret = Ubpa::details::Invalid>
+static int f_T_meta(lua_State* L_) {
+	LuaStateView L{ L_ };
+	const int callargnum = L.gettop();
+	auto obj = details::auto_get<UDRefl::ObjectView>(L, 1);
+	L.rotate(1, -1);
+	L.pop(1);
+	L.pushcfunction(f_meta<UDRefl::ObjectView, ObjectMeta, ObjectMeta, LArgNum, Ret>);
+	details::push(L, UDRefl::ObjectView{ Type_of<UDRefl::ReflMngr>, &UDRefl::Mngr });
+	details::push(L, UDRefl::ObjectView{ Type_of<UDRefl::ObjectView>, &obj });
+	L.rotate(1, 3);
+	int n = L.gettop();
+	int error = L.pcall(callargnum + 1, 1, 0);
+	if (error) {
+		return L.error("%s::%s: Call f_meta failed.\n%s",
+			type_name<T>().Data(), ObjectMeta::Data(), L.tostring(-1));
+	}
+	return 1;
+}
+
 template<typename T>
 static int f_T_new(lua_State* L_) {
 	LuaStateView L{ L_ };
@@ -1265,6 +1370,16 @@ static int f_Obj_range(lua_State* L_) {
 	return 3;
 }
 
+template<typename Obj>
+static int f_Obj_tuple_bind(lua_State* L_) {
+	LuaStateView L{ L_ };
+	auto obj = details::auto_get<UDRefl::ObjectView>(L, 1);
+	std::size_t n = obj.tuple_size();
+	for (std::size_t i{ 0 }; i < n; i++)
+		details::push(L, obj.tuple_get(i));
+	return static_cast<int>(n);
+}
+
 static int f_SharedObject_new(lua_State* L_) {
 	LuaStateView L{ L_ };
 	const int L_argnum = L.gettop();
@@ -1351,6 +1466,8 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"GetType", details::wrap<&UDRefl::ObjectView::GetType, UDRefl::ObjectView>(TSTR("GetType")),
 	"GetPtr", details::wrap<&UDRefl::ObjectView::GetPtr, UDRefl::ObjectView>(TSTR("GetPtr")),
 	"AsNumber", f_Obj_AsNumber<UDRefl::ObjectView>,
+	"GetTypeFieldVars", f_T_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetTypeFieldVars>,
+	"GetVars", f_T_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetVars>,
 
 	"__index", &f_Obj_index<UDRefl::ObjectView>,
 	"__newindex",& f_Obj_newindex<UDRefl::ObjectView>,
@@ -1386,7 +1503,7 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"prev",& f_meta<UDRefl::ObjectView, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
 
 	"tuple_size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, std::size_t>,
-	"tuple_get",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, UDRefl::ObjectView>,
+	"tuple_get",& f_meta<UDRefl::ObjectView, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2>,
 
 	"begin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
 	"cbegin",& f_meta<UDRefl::ObjectView, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
@@ -1416,6 +1533,7 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"get_allocator",& f_meta<UDRefl::ObjectView, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
 
 	"range", f_Obj_range<UDRefl::ObjectView>,
+	"tuple_bind", f_Obj_tuple_bind<UDRefl::ObjectView>,
 
 	NULL      , NULL
 };
@@ -1430,6 +1548,8 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"GetType", details::wrap<&UDRefl::SharedObject::GetType, UDRefl::SharedObject>(TSTR("GetType")),
 	"GetPtr", details::wrap<&UDRefl::SharedObject::GetPtr, UDRefl::SharedObject>(TSTR("GetPtr")),
 	"AsNumber", f_Obj_AsNumber<UDRefl::SharedObject>,
+	"GetTypeFieldVars", f_T_meta<UDRefl::SharedObject, details::ObjectMeta::t_GetTypeFieldVars>,
+	"GetVars", f_T_meta<UDRefl::SharedObject, details::ObjectMeta::t_GetVars>,
 
 	"__gc", details::wrap_dtor<UDRefl::SharedObject>(),
 	"__index", &f_Obj_index<UDRefl::SharedObject>,
@@ -1466,7 +1586,7 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"prev",& f_meta<UDRefl::SharedObject, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
 
 	"tuple_size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, std::size_t>,
-	"tuple_get",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2, UDRefl::ObjectView>,
+	"tuple_get",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2>,
 
 	"begin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
 	"cbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
@@ -1496,6 +1616,7 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"get_allocator",& f_meta<UDRefl::SharedObject, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
 
 	"range", f_Obj_range<UDRefl::SharedObject>,
+	"tuple_bind", f_Obj_tuple_bind<UDRefl::SharedObject>,
 
 	NULL                 , NULL
 };
