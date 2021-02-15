@@ -13,17 +13,17 @@
 
 # UDLua
 
-Ubpa Lua base on [UDRefl](https://github.com/ubpa/udrefl) 
+Ubpa Lua base on [UDRefl](https://github.com/ubpa/udrefl) (the "best" C++20 dynamic reflection library), which make it easy to use C++ in Lua.
 
 # Documents
 
-- todo
+- [todo](doc/todo.md) 
 
 # How to use
 
 > the example code is [here](https://github.com/Ubpa/UDLua/blob/master/bin/README.lua) 
 
-Suppose you need to use `struct vec`
+Suppose you need to use `struct vec` 
 
 ```c++
 struct vec {
