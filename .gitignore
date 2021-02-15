@@ -271,8 +271,10 @@ __pycache__/
 
 config/config.out
 
-lib/
-bin/
+*.exe
+*.lib
+*.ilk
+*.pdb
 build/
 _deps/
 

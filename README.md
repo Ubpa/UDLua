@@ -15,11 +15,15 @@
 
 Ubpa Lua base on [UDRefl](https://github.com/ubpa/udrefl) 
 
+# Documents
+
+- todo
+
 # How to use
 
-> the example code is [here](https://github.com/Ubpa/UDRefl/blob/master/src/test/00_readme/main.cpp), other examples is [here](https://github.com/Ubpa/UDRefl#other-example)
+> the example code is [here](https://github.com/Ubpa/UDLua/blob/master/bin/README.lua) 
 
-Suppose you need to use `struct Vec`
+Suppose you need to use `struct vec`
 
 ```c++
 struct vec {
