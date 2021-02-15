@@ -873,7 +873,7 @@ namespace Ubpa::details {
 	}
 }
 
-template<typename Functor, typename MetaName, typename CppMetaName = Ubpa::TStrC_of<>, int LArgNum = -1, typename Ret = Ubpa::details::Invalid>
+template<typename Functor, typename MetaName, typename CppMetaName = Ubpa::TStrC_of<>, int LArgNum = -1, typename Ret = Ubpa::details::Invalid, bool Inversable = false>
 static int f_meta(lua_State * L_) {
 	LuaStateView L{ L_ };
 
@@ -895,7 +895,17 @@ static int f_meta(lua_State * L_) {
 	Name method_name;
 	int argnum = L_argnum - 1;
 
-	const auto& functor = *(Functor*)L.checkudata(1, type_name<Functor>().Data());
+	int functor_idx;
+	if constexpr (Inversable) {
+		if (L.testudata(1, type_name<Functor>().Data()))
+			functor_idx = 1;
+		else
+			functor_idx = 2;
+	}
+	else
+		functor_idx = 1;
+
+	const auto& functor = *(Functor*)L.checkudata(functor_idx, type_name<Functor>().Data());
 
 	if constexpr (UDRefl::IsObjectOrView_v<Functor>) {
 		ptr = UDRefl::ObjectView{ functor.GetType(), functor.GetPtr() };
@@ -944,7 +954,16 @@ static int f_meta(lua_State * L_) {
 		actual_argnum = argnum;
 
 	{ // fill argstack
-		int error = details::FillArgStack(L, argstack, L_argnum - argnum + 1, argnum);
+		int error;
+		if constexpr (Inversable) {
+			if (functor_idx == 2)
+				error = details::FillArgStack(L, argstack, 1, 1);
+			else
+				error = details::FillArgStack(L, argstack, L_argnum - argnum + 1, argnum);
+		}
+		else
+			error = details::FillArgStack(L, argstack, L_argnum - argnum + 1, argnum);
+
 		if (error) {
 			return L.error("%s::new : \n%s",
 				type_name<UDRefl::SharedObject>().Data(), L.tostring(-1));
@@ -1473,17 +1492,17 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"__newindex",& f_Obj_newindex<UDRefl::ObjectView>,
 	"__tostring", &f_Obj_tostring<UDRefl::ObjectView>,
 	"__call",  &f_meta<UDRefl::ObjectView, details::Meta::t_call, details::CppMetaName::t_operator_call>,
-	"__add", &f_meta<UDRefl::ObjectView, details::Meta::t_add, details::CppMetaName::t_operator_add, 2>,
-	"__band", &f_meta<UDRefl::ObjectView, details::Meta::t_band, details::CppMetaName::t_operator_band, 2>,
+	"__add", &f_meta<UDRefl::ObjectView, details::Meta::t_add, details::CppMetaName::t_operator_add, 2, details::Invalid, true>,
+	"__band", &f_meta<UDRefl::ObjectView, details::Meta::t_band, details::CppMetaName::t_operator_band, 2, details::Invalid, true>,
 	"__bnot", &f_meta<UDRefl::ObjectView, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
-	"__bor", &f_meta<UDRefl::ObjectView, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2>,
-	"__bxor", &f_meta<UDRefl::ObjectView, details::Meta::t_bxor, details::CppMetaName::t_operator_bxor, 2>,
+	"__bor", &f_meta<UDRefl::ObjectView, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2, details::Invalid, true>,
+	"__bxor", &f_meta<UDRefl::ObjectView, details::Meta::t_bxor, details::CppMetaName::t_operator_bxor, 2, details::Invalid, true>,
 	"__div", &f_meta<UDRefl::ObjectView, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
-	"__eq", &f_meta<UDRefl::ObjectView, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, bool>,
+	"__eq", &f_meta<UDRefl::ObjectView, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, bool, true>,
 	"__le", &f_meta<UDRefl::ObjectView, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, bool>,
 	"__lt", &f_meta<UDRefl::ObjectView, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, bool>,
 	"__mod", &f_meta<UDRefl::ObjectView, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
-	"__mul", &f_meta<UDRefl::ObjectView, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2>,
+	"__mul", &f_meta<UDRefl::ObjectView, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2, details::Invalid, true>,
 	"__shl", &f_meta<UDRefl::ObjectView, details::Meta::t_shl, details::CppMetaName::t_operator_lshift, 2>,
 	"__shr", &f_meta<UDRefl::ObjectView, details::Meta::t_shr, details::CppMetaName::t_operator_rshift, 2>,
 	"__sub", &f_meta<UDRefl::ObjectView, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
@@ -1556,12 +1575,12 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"__newindex",&f_Obj_newindex<UDRefl::SharedObject>,
 	"__tostring", &f_Obj_tostring<UDRefl::SharedObject>,
 	"__call", &f_meta<UDRefl::SharedObject, details::Meta::t_call, details::CppMetaName::t_operator_call>,
-	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, details::CppMetaName::t_operator_add, 2>,
-	"__band",&f_meta<UDRefl::SharedObject, details::Meta::t_band, details::CppMetaName::t_operator_band, 2>,
+	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, details::CppMetaName::t_operator_add, 2, details::Invalid, true>,
+	"__band",&f_meta<UDRefl::SharedObject, details::Meta::t_band, details::CppMetaName::t_operator_band, 2, details::Invalid, true>,
 	"__bnot",&f_meta<UDRefl::SharedObject, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
-	"__bor",&f_meta<UDRefl::SharedObject, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2>,
+	"__bor",&f_meta<UDRefl::SharedObject, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2, details::Invalid, true>,
 	"__div",&f_meta<UDRefl::SharedObject, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
-	"__eq",&f_meta<UDRefl::SharedObject, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, bool>,
+	"__eq",&f_meta<UDRefl::SharedObject, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, bool, true>,
 	"__le",&f_meta<UDRefl::SharedObject, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, bool>,
 	"__lt",&f_meta<UDRefl::SharedObject, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, bool>,
 	"__mod",&f_meta<UDRefl::SharedObject, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
