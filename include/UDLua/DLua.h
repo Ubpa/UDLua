@@ -1,6 +1,6 @@
 #pragma once
 
-struct lua_State;
+#include <lua.hpp>
 
 // Name
 // Type

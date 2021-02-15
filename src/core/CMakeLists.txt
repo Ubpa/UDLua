@@ -6,5 +6,5 @@ Ubpa_AddTarget(
     "${PROJECT_SOURCE_DIR}/include"
   LIB
     Ubpa::ULuaW_core
-    Ubpa::UDRefl_core
+    Ubpa::UDRefl_ext_Bootstrap
 )

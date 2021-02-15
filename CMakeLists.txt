@@ -8,8 +8,10 @@ Ubpa_InitUCMake(VERSION 0.6.4)
 
 Ubpa_InitProject()
 
-Ubpa_AddDep(ULuaW  0.1.0)
-Ubpa_AddDep(UDRefl 0.8.1)
+set(Ubpa_UDRefl_Build_BootStrap true)
+
+Ubpa_AddDep(ULuaW  0.1.1)
+Ubpa_AddDep(UDRefl 0.8.2)
 
 Ubpa_AddSubDirsRec(src)
 

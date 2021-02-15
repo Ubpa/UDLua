@@ -1,10 +1,11 @@
 #include <UDLua/DLua.h>
 
-#include <ULuaW/LuaStateView.h>
+#include <ULuaW/ULuaW.h>
 
 #include <UDRefl/UDRefl.h>
+#include <UDRefl_ext/Bootstrap.h>
 
-#include <lua.hpp>
+#include <exception>
 
 using namespace Ubpa;
 
@@ -385,6 +386,13 @@ namespace Ubpa::details {
 }
 
 namespace Ubpa::details {
+	struct ArgStack {
+		void* argptr_buffer[UDRefl::MaxArgNum];
+		std::aligned_storage_t<sizeof(Type), alignof(Type)> argType_buffer[UDRefl::MaxArgNum];
+		std::uint64_t copied_args_buffer[UDRefl::MaxArgNum];
+		std::size_t num_copied_args = 0;
+	};
+
 	struct CallHandle {
 		Type type;
 		Name method_name;
@@ -393,24 +401,13 @@ namespace Ubpa::details {
 	struct Invalid {}; // for f_meta
 
 	template<typename T>
-	constexpr lua_CFunction wrap_dtor() {
-		return [](lua_State* L_) -> int {
-			LuaStateView L{ L_ };
-			auto* ptr = (T*)L.checkudata(1, type_name<T>().Data());
-			ptr->~T();
-			// std::cout << "[debug] dtor: " << type_name<T>().View() << std::endl;
-			return 0;
-		};
-	}
-
-	template<typename T>
-	auto auto_get(LuaStateView L, int idx) {
+	T auto_get(LuaStateView L, int idx) {
 		if constexpr (std::is_reference_v<T>)
 			static_assert(always_false<T>);
 		else if constexpr (std::is_integral_v<T>)
-			return L.checkinteger(idx);
+			return static_cast<T>(L.checkinteger(idx));
 		else if constexpr (std::is_floating_point_v<T>)
-			return L.checknumber(idx);
+			return static_cast<T>(L.checknumber(idx));
 		else if constexpr (std::is_null_pointer_v<T>) {
 			L.checktype(idx, LUA_TNIL);
 			return std::nullptr_t;
@@ -430,11 +427,14 @@ namespace Ubpa::details {
 			int type = L.type(idx);
 			switch (type)
 			{
-			case LUA_TNUMBER:
-				static_cast<std::size_t>(L.checkinteger(idx));
-				break;
+			case LUA_TSTRING:
+				return T{ auto_get<std::string_view>(L, idx) };
+			case LUA_TUSERDATA:
+				return *(T*)L.checkudata(idx, type_name<T>().Data());
 			default:
-				break;
+				L.error("auto_get : The %dth argument (%s) isn't convertible to %s.",
+					idx, L.typename_(idx), type_name<T>().Data());
+				return T{};
 			}
 		}
 		else
@@ -474,6 +474,248 @@ namespace Ubpa::details {
 			}
 			L.setmetatable(-2);
 		}
+	}
+
+	// result is error code
+	// 0 : ok
+	// 1 : error (error message is at the top of the stack)
+	int FillArgStack(LuaStateView L, ArgStack& stack, int begin, int cnt) {
+		assert(cnt >= 0);
+		if (cnt > UDRefl::MaxArgNum) {
+			L.pushfstring("Ubpa::details::FillArgStack : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
+				cnt, static_cast<int>(UDRefl::MaxArgNum));
+			return 1;
+		}
+
+		auto& copied_args_buffer = stack.copied_args_buffer;
+		auto& argptr_buffer = stack.argptr_buffer;
+		auto& argType_buffer = stack.argType_buffer;
+		auto& num_copied_args = stack.num_copied_args;
+
+		for (int i{ 0 }; i < cnt; i++) {
+			int arg = begin + i;
+			int type = L.type(arg);
+			switch (type)
+			{
+			case LUA_TBOOLEAN:
+			{
+				auto arg_buffer = &copied_args_buffer[num_copied_args++];
+				argptr_buffer[i] = arg_buffer;
+				UDRefl::buffer_as<Type>(&argType_buffer[i]) = Type_of<bool>;
+				UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
+				break;
+			}
+			case LUA_TNUMBER:
+				if (L.isinteger(arg)) {
+					auto arg_buffer = &copied_args_buffer[num_copied_args++];
+					argptr_buffer[i] = arg_buffer;
+					UDRefl::buffer_as<Type>(&argType_buffer[i]) = Type_of<lua_Integer>;
+					UDRefl::buffer_as<lua_Integer>(arg_buffer) = static_cast<lua_Integer>(L.tointeger(arg));
+				}
+				else if (L.isnumber(arg)) {
+					auto arg_buffer = &copied_args_buffer[num_copied_args++];
+					argptr_buffer[i] = arg_buffer;
+					UDRefl::buffer_as<Type>(&argType_buffer[i]) = Type_of<lua_Number>;
+					UDRefl::buffer_as<lua_Number>(arg_buffer) = static_cast<lua_Number>(L.tonumber(arg));
+				}
+				else
+					assert(false);
+				break;
+			case LUA_TSTRING:
+			{
+				auto arg_buffer = &copied_args_buffer[num_copied_args++];
+				argptr_buffer[i] = arg_buffer;
+				UDRefl::buffer_as<Type>(&argType_buffer[i]) = Type_of<const char*>;
+				UDRefl::buffer_as<const char*>(arg_buffer) = L.tostring(arg);
+				break;
+			}
+			case LUA_TUSERDATA:
+				if (void* udata = L.testudata(arg, type_name<UDRefl::ObjectView>().Data())) {
+					UDRefl::ObjectView arg = *static_cast<UDRefl::ObjectView*>(udata);
+					auto ref_arg = arg.AddLValueReferenceWeak();
+					argptr_buffer[i] = ref_arg.GetPtr();
+					UDRefl::buffer_as<Type>(&argType_buffer[i]) = ref_arg.GetType();
+				}
+				else if (void* udata = L.testudata(arg, type_name<UDRefl::SharedObject>().Data())) {
+					UDRefl::ObjectView arg = *static_cast<UDRefl::SharedObject*>(udata);
+					auto ref_arg = arg.AddLValueReferenceWeak();
+					argptr_buffer[i] = ref_arg.GetPtr();
+					UDRefl::buffer_as<Type>(&argType_buffer[i]) = ref_arg.GetType();
+				}
+				else if (void* udata = L.testudata(arg, type_name<Name>().Data())) {
+					auto* arg = static_cast<Name*>(udata);
+					argptr_buffer[i] = arg;
+					UDRefl::buffer_as<Type>(&argType_buffer[i]) = Type_of<Name>;
+				}
+				else if (void* udata = L.testudata(arg, type_name<Type>().Data())) {
+					auto* arg = static_cast<Type*>(udata);
+					argptr_buffer[i] = arg;
+					UDRefl::buffer_as<Type>(&argType_buffer[i]) = Type_of<Type>;
+				}
+				else if (!L.getmetatable(arg)) {
+					argptr_buffer[i] = L.touserdata(arg);
+					UDRefl::buffer_as<Type>(&argType_buffer[i]) = Type_of<void*>;
+				}
+				else {
+					int success = L.getfield(-1, "__name");
+					const char* udata_name = "UNKNOWN";
+					if (success)
+						udata_name = L.tostring(-1);
+					L.pushfstring("Ubpa::details::FillArgStack : ArgStack doesn't support %s (%s).",
+						L.typename_(arg),
+						udata_name
+					);
+					return 1;
+				}
+				break;
+			default:
+				L.pushfstring("Ubpa::details::FillArgStack : ArgStack doesn't support %s.", L.typename_(arg) );
+				return 1;
+			}
+		}
+
+		return 0;
+	}
+
+	int f_SharedObject_new_MethodPtr(lua_State* L_) {
+		LuaStateView L{ L_ };
+
+		int L_argnum = L.gettop();
+
+		UDRefl::SharedObject methodptr_obj;
+		LuaRef func_ref;
+		Type result_type = Type_of<void>;
+		Type object_type;
+		UDRefl::ParamList list;
+
+		// [object type, ]function[, result type = Type_of<void>]
+		// [, ParamList = {}]
+
+		if (L_argnum == 1) { // function
+			L.checktype(1, LUA_TFUNCTION);
+			func_ref = std::move(LuaRef{ L });
+		}
+		else if (L_argnum == 2) { // object type + function / function + result type
+			if (L.type(1) == LUA_TFUNCTION) {
+				// function + result type
+				object_type = auto_get<Type>(L, 2);
+				L.pop(1);
+				func_ref = std::move(LuaRef{ L });
+			}
+			else {
+				// object type + function
+				object_type = auto_get<Type>(L, 1);
+				func_ref = std::move(LuaRef{ L });
+			}
+		}
+		else if (L_argnum == 3) {
+			object_type = auto_get<Type>(L, 1);
+			result_type = auto_get<Type>(L, 3);
+			L.pop(1);
+			L.checktype(2, LUA_TFUNCTION);
+			func_ref = std::move(LuaRef{ L });
+		}
+		else {
+			return L.error(
+				"%s::new_MethodPtr :"
+				"The number of arguments (%d) is invalid. The function needs 1~4 arguments([object type, ]function[, result type][, ParamList]).",
+				type_name<UDRefl::SharedObject>().Data(), L_argnum);
+		}
+		
+		UDRefl::MethodFlag flag;
+		if (!object_type.GetID().Valid())
+			flag = UDRefl::MethodFlag::Static;
+		else if (object_type.IsConst())
+			flag = UDRefl::MethodFlag::Const;
+		else
+			flag = UDRefl::MethodFlag::Variable;
+
+		methodptr_obj = {
+			Type_of<UDRefl::MethodPtr>,
+			std::make_shared<UDRefl::MethodPtr>(
+				UDRefl::MethodPtr::Func{ [object_type, result_type, fref = std::make_shared<LuaRef>(std::move(func_ref))] (void* obj, void* result_buffer, UDRefl::ArgsView args) mutable {
+					auto L = fref->GetView();
+					int top = L.gettop();
+					fref->Get();
+					const int n = static_cast<int>(args.GetParamList().size());
+					int callargnum;
+					if (object_type.Valid()) {
+						callargnum = n + 1;
+						L.checkstack(callargnum);
+						push(L, UDRefl::ObjectView{ object_type, obj });
+					}
+					else {
+						callargnum = n;
+						L.checkstack(callargnum);
+					}
+
+					for (std::size_t i = 0; i < n; i++)
+						push(L, args.At(i));
+					int error = L.pcall(callargnum, LUA_MULTRET, 0);
+					if (error) {
+						std::stringstream ss;
+						ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
+						std::string str = ss.str();
+						std::exception except{ str.data() };
+						L.pop(1);
+						throw except;
+					}
+
+					if (!result_buffer || !result_type || result_type.IsVoid())
+						return;
+
+					int result_construct_argnum = L.gettop() - top;
+					ArgStack argstack;
+					{ // fill argstack
+						int error = details::FillArgStack(L, argstack, top + 1, result_construct_argnum);
+						if (error) {
+							std::stringstream ss;
+							ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
+							std::string str = ss.str();
+							std::exception except{ str.data() };
+							L.pop(1);
+							throw except;
+						}
+					}
+
+					{ // construct result
+						bool success = UDRefl::Mngr.Construct(
+							UDRefl::ObjectView{ result_type, result_buffer },
+							std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(result_construct_argnum)},
+							static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+						);
+						if (!success) {
+							std::stringstream ss;
+							ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda: Construct fail.";
+							std::string str = ss.str();
+							std::exception except{ str.data() };
+							L.pop(1);
+							throw except;
+						}
+					}
+				}},
+				flag,
+				result_type,
+				std::move(list)
+			)
+		};
+
+		void* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
+		L.setmetatable(type_name<UDRefl::SharedObject>().Data());
+		new(buffer)UDRefl::SharedObject{ std::move(methodptr_obj) };
+
+		return 1;
+	}
+
+	template<typename T>
+	constexpr lua_CFunction wrap_dtor() {
+		return [](lua_State* L_) -> int {
+			LuaStateView L{ L_ };
+			auto* ptr = (T*)L.checkudata(1, type_name<T>().Data());
+			ptr->~T();
+			// std::cout << "[debug] dtor: " << type_name<T>().View() << std::endl;
+			return 0;
+		};
 	}
 
 	template<auto funcptr, typename Obj, std::size_t... Ns>
@@ -601,87 +843,34 @@ static int f_meta(lua_State * L_) {
 			type_name<Functor>().Data(), MetaName::Data(), argnum, static_cast<int>(UDRefl::MaxArgNum));
 	}
 
-	void* argptr_buffer[UDRefl::MaxArgNum];
-	Type argType_buffer[UDRefl::MaxArgNum];
-	std::uint64_t copied_args_buffer[UDRefl::MaxArgNum];
-	std::size_t num_copied_args = 0;
+	details::ArgStack argstack;
 
+	int actual_argnum;
 	if constexpr (UDRefl::NameIDRegistry::Meta::operator_post_inc.Is(CppMetaName::View()) || UDRefl::NameIDRegistry::Meta::operator_post_dec.Is(CppMetaName::View())) {
 		static_assert(LArgNum == 1);
 		assert(argnum == 0);
-		auto arg_buffer = &copied_args_buffer[num_copied_args++];
-		argptr_buffer[0] = arg_buffer;
-		argType_buffer[0] = Type_of<int>;
-		UDRefl::buffer_as<int>(arg_buffer) = 0;
+		auto arg_buffer = &argstack.copied_args_buffer[argstack.num_copied_args++];
+		argstack.argptr_buffer[0] = arg_buffer;
+		UDRefl::buffer_as<Type>(&argstack.argType_buffer[0]) = Type_of<int>;
+		UDRefl::buffer_as<int>(&argstack.copied_args_buffer[0]) = 0;
+		actual_argnum = 1;
 	}
+	else
+		actual_argnum = argnum;
 
-	for (std::size_t i{ 0 }; i < argnum; i++) {
-		int arg = static_cast<int>(i) + L_argnum - argnum + 1;
-		int type = L.type(arg);
-		switch (type)
-		{
-		case LUA_TBOOLEAN:
-		{
-			auto arg_buffer = &copied_args_buffer[num_copied_args++];
-			argptr_buffer[i] = arg_buffer;
-			argType_buffer[i] = Type_of<bool>;
-			UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
-			break;
-		}
-		case LUA_TNUMBER:
-			if (L.isinteger(arg)) {
-				auto arg_buffer = &copied_args_buffer[num_copied_args++];
-				argptr_buffer[i] = arg_buffer;
-				argType_buffer[i] = Type_of<lua_Integer>;
-				UDRefl::buffer_as<lua_Integer>(arg_buffer) = L.tointeger(arg);
-			}
-			else if (L.isnumber(arg)) {
-				auto arg_buffer = &copied_args_buffer[num_copied_args++];
-				argptr_buffer[i] = arg_buffer;
-				argType_buffer[i] = Type_of<lua_Number>;
-				UDRefl::buffer_as<lua_Number>(arg_buffer) = L.tonumber(arg);
-			}
-			else
-				assert(false);
-			break;
-		case LUA_TSTRING:
-		{
-			auto arg_buffer = &copied_args_buffer[num_copied_args++];
-			argptr_buffer[i] = arg_buffer;
-			argType_buffer[i] = Type_of<const char*>;
-			UDRefl::buffer_as<const char*>(arg_buffer) = L.tostring(arg);
-			break;
-		}
-		case LUA_TUSERDATA:
-			if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectView>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::ObjectView*>(udata);
-				auto ref_rhs = rhs.AddLValueReferenceWeak();
-				argptr_buffer[i] = ref_rhs.GetPtr();
-				argType_buffer[i] = ref_rhs.GetType();
-			}
-			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
-				const auto& rhs = *static_cast<UDRefl::SharedObject*>(udata);
-				auto ref_rhs = rhs.AddLValueReferenceWeak();
-				argptr_buffer[i] = ref_rhs.GetPtr();
-				argType_buffer[i] = ref_rhs.GetType();
-			}
-			else if (!L.getmetatable(arg)) {
-				argptr_buffer[i] = L.touserdata(arg);
-				argType_buffer[i] = Type_of<void*>;
-			}
-			break;
-		default:
-			return L.error("%s::%s : The function doesn't support %s.",
-				type_name<Functor>().Data(),
-				MetaName::Data(),
-				L.typename_(arg)
-			);
+	{ // fill argstack
+		int error = details::FillArgStack(L, argstack, L_argnum - argnum + 1, argnum);
+		if (error) {
+			return L.error("%s::new : \n%s",
+				type_name<UDRefl::SharedObject>().Data(), L.tostring(-1));
 		}
 	}
 
 	if constexpr (!std::is_same_v<Ret, details::Invalid>) {
-		auto invocable_rst = ptr.IsInvocable(method_name, std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)});
-		if (!invocable_rst || invocable_rst.result_desc.type != Type_of<Ret>) {
+		Type result_type = ptr.IsInvocable(method_name,
+			std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer),
+			static_cast<std::size_t>(actual_argnum)});
+		if (result_type.Is<Ret>()) {
 			return L.error("%s::%s : The function isn't invocable with arguments or it's return type isn't %s.",
 				type_name<Functor>().Data(),
 				MetaName::Data(),
@@ -692,16 +881,16 @@ static int f_meta(lua_State * L_) {
 		if constexpr (std::is_void_v<Ret>) {
 			ptr.InvokeRet<void>(
 				method_name,
-				std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)},
-				static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
+				std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
+				static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 			);
 			return 0;
 		}
 		else {
 			Ret rst = ptr.InvokeRet<Ret>(
 				method_name,
-				std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)},
-				static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
+				std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
+				static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 			);
 
 			details::push<Ret>(L, std::move(rst));
@@ -712,8 +901,8 @@ static int f_meta(lua_State * L_) {
 	else {
 		UDRefl::SharedObject rst = ptr.DMInvoke(
 			method_name,
-			std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)},
-			static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
+			std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
+			static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 		);
 
 		if (!rst.GetType()) {
@@ -752,7 +941,13 @@ static int f_T_new(lua_State* L_) {
 			size_t len;
 			const char* str = L.tolstring(1, &len);
 			void* buffer = L.newuserdata(sizeof(T));
-			new (buffer) Type{ std::string_view{ str, len } };
+			std::string_view sv{ str, len };
+			T t;
+			if constexpr (std::is_same_v<T, Name>)
+				t = UDRefl::Mngr.nregistry.Register(sv);
+			else
+				t = UDRefl::Mngr.tregistry.Register(sv);
+			new (buffer) Type{ t };
 			break;
 		}
 		default:
@@ -848,7 +1043,7 @@ static int f_Obj_tostring(lua_State* L_) {
 	if (L.gettop() != 1)
 		return L.error("%s::__tostring : The number of arguments is invalid. The function needs 1 argument (object).", type_name<Obj>().Data());
 
-	auto ptr = static_cast<UDRefl::ObjectView>(*(Obj*)L.checkudata(1, type_name<Obj>().Data()));
+	auto& ptr = static_cast<UDRefl::ObjectView&>(*(Obj*)L.checkudata(1, type_name<Obj>().Data()));
 
 	if (!ptr.GetPtr())
 		return L.error("%s::__tostring : The object is nil.", type_name<Obj>().Data());
@@ -1067,83 +1262,18 @@ static int f_SharedObject_new(lua_State* L_) {
 
 	const int argnum = L_argnum - 1;
 
-	if (argnum > UDRefl::MaxArgNum) {
-		return L.error("%s::new : The number of arguments (%d) is greater than UDRefl::MaxArgNum (%d).",
-			type_name<UDRefl::SharedObject>().Data(), argnum, static_cast<lua_Integer>(UDRefl::MaxArgNum));
-	}
+	details::ArgStack argstack;
+	int error = details::FillArgStack(L, argstack, L_argnum - argnum + 1, argnum);
 
-	void* argptr_buffer[UDRefl::MaxArgNum];
-	Type argType_buffer[UDRefl::MaxArgNum];
-	std::uint64_t copied_args_buffer[UDRefl::MaxArgNum];
-	std::size_t num_copied_args = 0;
-
-	for (std::size_t i{ 0 }; i < argnum; i++) {
-		int arg = static_cast<int>(i) + L_argnum - argnum + 1;
-		int type = L.type(arg);
-		switch (type)
-		{
-		case LUA_TBOOLEAN:
-		{
-			auto arg_buffer = &copied_args_buffer[num_copied_args++];
-			argptr_buffer[i] = arg_buffer;
-			argType_buffer[i] = Type_of<bool>;
-			UDRefl::buffer_as<bool>(arg_buffer) = static_cast<bool>(L.toboolean(arg));
-			break;
-		}
-		case LUA_TNUMBER:
-			if (L.isinteger(arg)) {
-				auto arg_buffer = &copied_args_buffer[num_copied_args++];
-				argptr_buffer[i] = arg_buffer;
-				argType_buffer[i] = Type_of<lua_Integer>;
-				UDRefl::buffer_as<lua_Integer>(arg_buffer) = static_cast<lua_Integer>(L.tointeger(arg));
-			}
-			else if (L.isnumber(arg)) {
-				auto arg_buffer = &copied_args_buffer[num_copied_args++];
-				argptr_buffer[i] = arg_buffer;
-				argType_buffer[i] = Type_of<lua_Number>;
-				UDRefl::buffer_as<lua_Number>(arg_buffer) = static_cast<lua_Number>(L.tonumber(arg));
-			}
-			else
-				assert(false);
-			break;
-		case LUA_TSTRING:
-		{
-			auto arg_buffer = &copied_args_buffer[num_copied_args++];
-			argptr_buffer[i] = arg_buffer;
-			argType_buffer[i] = Type_of<const char*>;
-			UDRefl::buffer_as<const char*>(arg_buffer) = L.tostring(arg);
-			break;
-		}
-		case LUA_TUSERDATA:
-			if (void* udata = L.testudata(-1, type_name<UDRefl::ObjectView>().Data())) {
-				UDRefl::ObjectView arg = *static_cast<UDRefl::ObjectView*>(udata);
-				auto ref_arg = arg.AddLValueReferenceWeak();
-				argptr_buffer[i] = ref_arg.GetPtr();
-				argType_buffer[i] = ref_arg.GetType();
-			}
-			else if (void* udata = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
-				UDRefl::ObjectView arg = *static_cast<UDRefl::SharedObject*>(udata);
-				auto ref_arg = arg.AddLValueReferenceWeak();
-				argptr_buffer[i] = ref_arg.GetPtr();
-				argType_buffer[i] = ref_arg.GetType();
-			}
-			else if (!L.getmetatable(arg)) {
-				argptr_buffer[i] = L.touserdata(arg);
-				argType_buffer[i] = Type_of<void*>;
-			}
-			break;
-		default:
-			return L.error("%s::new : The function doesn't support %s.",
-				type_name<UDRefl::SharedObject>().Data(),
-				L.typename_(arg)
-			);
-		}
+	if (error) {
+		return L.error("%s::new : \n%s",
+			type_name<UDRefl::SharedObject>().Data(), L.tostring(-1));
 	}
 
 	UDRefl::SharedObject obj = UDRefl::Mngr.MakeShared(
 		type,
-		std::span<const Type>{reinterpret_cast<Type*>(argType_buffer), static_cast<std::size_t>(argnum)},
-		static_cast<UDRefl::ArgPtrBuffer>(argptr_buffer)
+		std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
+		static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 	);
 
 	if (!obj.GetType())
@@ -1188,6 +1318,7 @@ static const struct luaL_Reg lib_ObjectView[] = {
 	"new"     , f_Obj_new<UDRefl::ObjectView>,
 	NULL      , NULL
 };
+
 static const struct luaL_Reg meta_ObjectView[] = {
 	"GetType", details::wrap<&UDRefl::ObjectView::GetType, UDRefl::ObjectView>(TSTR("GetType")),
 	"GetPtr", details::wrap<&UDRefl::ObjectView::GetPtr, UDRefl::ObjectView>(TSTR("GetPtr")),
@@ -1263,8 +1394,10 @@ static const struct luaL_Reg meta_ObjectView[] = {
 
 static const struct luaL_Reg lib_SharedObject[] = {
 	"new", f_SharedObject_new,
+	"new_MethodPtr", details::f_SharedObject_new_MethodPtr,
 	NULL, NULL
 };
+
 static const struct luaL_Reg meta_SharedObject[] = {
 	"GetType", details::wrap<&UDRefl::SharedObject::GetType, UDRefl::SharedObject>(TSTR("GetType")),
 	"GetPtr", details::wrap<&UDRefl::SharedObject::GetPtr, UDRefl::SharedObject>(TSTR("GetPtr")),
@@ -1379,6 +1512,13 @@ static int luaopen_ObjectView(lua_State* L_) {
 		new(buffer) UDRefl::ObjectView{ UDRefl::Global };
 		L.setmetatable(type_name<UDRefl::ObjectView>().Data());
 		L.setfield(-2, "Global");
+	}
+	{ // register ReflMngr
+		UDRefl::ext::Bootstrap();
+		void* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
+		new(buffer) UDRefl::ObjectView{ Type_of<UDRefl::ReflMngr>, &UDRefl::Mngr };
+		L.setmetatable(type_name<UDRefl::ObjectView>().Data());
+		L.setfield(-2, "ReflMngr");
 	}
 	return 1;
 }
