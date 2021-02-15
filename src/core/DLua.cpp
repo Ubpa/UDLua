@@ -82,10 +82,10 @@ namespace Ubpa::details {
 		static constexpr auto tuple_size = TSTR("tuple_size");
 		static constexpr auto tuple_get = TSTR("tuple_get");
 
-		static constexpr auto advance = TSTR("UDRefl::iterator_advance");
-		static constexpr auto distance = TSTR("UDRefl::iterator_distance");
-		static constexpr auto next = TSTR("UDRefl::iterator_next");
-		static constexpr auto prev = TSTR("UDRefl::iterator_prev");
+		static constexpr auto advance = TSTR("advance");
+		static constexpr auto distance = TSTR("distance");
+		static constexpr auto next = TSTR("next");
+		static constexpr auto prev = TSTR("prev");
 
 		static constexpr auto assign = TSTR("assign");
 		static constexpr auto begin = TSTR("begin");
@@ -936,6 +936,34 @@ static int f_T_new(lua_State* L_) {
 		int type = L.type(-1);
 		switch (type)
 		{
+		case LUA_TNUMBER:
+		{
+			auto value = details::auto_get<std::size_t>(L, 1);
+			T t;
+			if constexpr (std::is_same_v<T, Name>) {
+				NameID id{ value };
+				std::string_view name = UDRefl::Mngr.nregistry.Nameof(id);
+				if (name.empty()) {
+					return L.error("%s::new: Not found name of ID (lua_Integer: %I)",
+						type_name<T>().Data(),
+						static_cast<lua_Integer>(value));
+				}
+				t = { name, id };
+			}
+			else {
+				TypeID id{ value };
+				std::string_view name = UDRefl::Mngr.tregistry.Nameof(id);
+				if (name.empty()) {
+					return L.error("%s::new: Not found name of ID (lua_Integer: %I)",
+						type_name<T>().Data(),
+						static_cast<lua_Integer>(value));
+				}
+				t = { name, id };
+			}
+			void* buffer = L.newuserdata(sizeof(T));
+			new(buffer)T{ t };
+			break;
+		}
 		case LUA_TSTRING:
 		{
 			size_t len;
@@ -947,15 +975,15 @@ static int f_T_new(lua_State* L_) {
 				t = UDRefl::Mngr.nregistry.Register(sv);
 			else
 				t = UDRefl::Mngr.tregistry.Register(sv);
-			new (buffer) Type{ t };
+			new (buffer) T{ t };
 			break;
 		}
 		default:
-			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a string.", type_name<T>().Data());
+			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a string/integer.", type_name<T>().Data());
 		}
 	}
 	else
-		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a string.", type_name<T>().Data());
+		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a string/integer.", type_name<T>().Data());
 
 	L.getmetatable(type_name<T>().Data());
 	L.setmetatable(-2);
