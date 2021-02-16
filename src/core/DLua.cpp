@@ -764,6 +764,8 @@ namespace Ubpa::details {
 				type_name<UDRefl::SharedObject>().Data(), L_argnum);
 		}
 
+		assert(result_type);
+
 		if (result_type.IsConst()) {
 			return L.error(
 				"%s::new_MethodPtr :"
@@ -818,7 +820,7 @@ namespace Ubpa::details {
 					}
 
 
-					if (!result_buffer || !result_type || result_type.IsVoid())
+					if (!result_buffer || result_type.IsVoid())
 						return;
 
 					if (result_type.IsReference()) {
@@ -932,10 +934,8 @@ namespace Ubpa::details {
 		using Ret = typename Traits::Return;
 		if constexpr (std::is_void_v<Ret>)
 			(obj->*funcptr)(auto_get<At_t<ArgList, Ns>>(L, 2 + Ns)...);
-		else {
-			auto ret = (obj->*funcptr)(auto_get<At_t<ArgList, Ns>>(L, 2 + Ns)...);
-			push<Ret>(L, std::forward<Ret>(ret));
-		}
+		else
+			push<Ret>(L, (obj->*funcptr)(auto_get<At_t<ArgList, Ns>>(L, 2 + Ns)...));
 	};
 
 	template<auto funcptr, std::size_t... Ns>
@@ -1104,21 +1104,52 @@ static int f_meta(lua_State * L_) {
 		}
 
 		if constexpr (std::is_void_v<Ret>) {
-			ptr.BInvokeRet<void>(
-				method_name,
-				std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
-				static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
-			);
+			try {
+				ptr.BInvokeRet<void>(
+					method_name,
+					std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
+					static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+				);
+			}
+			catch (const std::exception& e) {
+				return L.error("%s::%s : Invoke exception.\n%s",
+					type_name<Functor>().Data(),
+					MetaName::Data(),
+					e.what()
+				);
+			}
+			catch (...) {
+				return L.error("%s::%s : Invoke exception.\n",
+					type_name<Functor>().Data(),
+					MetaName::Data()
+				);
+			}
+			
 			return 0;
 		}
 		else {
-			Ret rst = ptr.BInvokeRet<Ret>(
-				method_name,
-				std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
-				static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
-			);
+			try {
+				Ret rst = ptr.BInvokeRet<Ret>(
+					method_name,
+					std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
+					static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+					);
 
-			details::push<Ret>(L, std::move(rst));
+				details::push<Ret>(L, std::move(rst));
+			}
+			catch (const std::exception& e) {
+				return L.error("%s::%s : Invoke exception.\n%s",
+					type_name<Functor>().Data(),
+					MetaName::Data(),
+					e.what()
+				);
+			}
+			catch (...) {
+				return L.error("%s::%s : Invoke exception.\n",
+					type_name<Functor>().Data(),
+					MetaName::Data()
+				);
+			}
 
 			return 1;
 		}
@@ -1129,20 +1160,35 @@ static int f_meta(lua_State * L_) {
 			assert(success);
 		}
 		auto* rsrc = (std::pmr::unsynchronized_pool_resource*)L.touserdata(-1);
-		UDRefl::SharedObject rst = ptr.MInvoke(
-			method_name,
-			rsrc,
-			rsrc,
-			std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
-			static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
-		);
+		try {
+			UDRefl::SharedObject rst = ptr.MInvoke(
+				method_name,
+				rsrc,
+				rsrc,
+				std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
+				static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+			);
 
-		rst = { UDRefl::ObjectView{rst.GetType(), rst.GetPtr()},[rsrc_ref = LuaRef{L}, buffer = rst.GetBuffer()](void*){} };
+			rst = { UDRefl::ObjectView{rst.GetType(), rst.GetPtr()},[rsrc_ref = LuaRef{L}, buffer = rst.GetBuffer()](void*){} };
 
-		if (rst.GetType().Is<void>())
-			return 0;
+			if (rst.GetType().Is<void>())
+				return 0;
 
-		details::push(L, std::move(rst));
+			details::push(L, std::move(rst));
+		}
+		catch (const std::exception& e) {
+			return L.error("%s::%s : Invoke exception.\n%s",
+				type_name<Functor>().Data(),
+				MetaName::Data(),
+				e.what()
+			);
+		}
+		catch (...) {
+			return L.error("%s::%s : Invoke exception.\n",
+				type_name<Functor>().Data(),
+				MetaName::Data()
+			);
+		}
 
 		return 1;
 	}
@@ -1291,12 +1337,34 @@ static int f_Obj_AsNumber(lua_State* L_) {
 		L.pushboolean(ptr.As<bool>());
 	else if (type_name_is_integral(tname)) {
 		lua_Integer value;
-		UDRefl::ObjectView{ value }.ABInvoke<void>(UDRefl::NameIDRegistry::Meta::ctor, ptr);
+		try {
+			UDRefl::ObjectView{ value }.ABInvoke<void>(UDRefl::NameIDRegistry::Meta::ctor, ptr);
+		}
+		catch (const std::exception& e) {
+			return L.error("%s::AsNumber : Invoke exception.\n%s",
+				type_name<Obj>().Data(),
+				e.what()
+			);
+		}
+		catch (...) {
+			return L.error("%s::%s : Invoke exception.\n", type_name<Obj>().Data());
+		}
 		L.pushinteger(value);
 	}
 	else if (type_name_is_floating_point(tname)) {
 		lua_Number value;
-		UDRefl::ObjectView{ value }.ABInvoke<void>(UDRefl::NameIDRegistry::Meta::ctor, ptr);
+		try {
+			UDRefl::ObjectView{ value }.ABInvoke<void>(UDRefl::NameIDRegistry::Meta::ctor, ptr);
+		}
+		catch (const std::exception& e) {
+			return L.error("%s::AsNumber : Invoke exception.\n%s",
+				type_name<Obj>().Data(),
+				e.what()
+			);
+		}
+		catch (...) {
+			return L.error("%s::%s : Invoke exception.\n", type_name<Obj>().Data());
+		}
 		L.pushnumber(value);
 	}
 	else {
@@ -1327,7 +1395,18 @@ static int f_Obj_tostring(lua_State* L_) {
 	}
 
 	std::stringstream ss;
-	ss << ptr;
+	try {
+		ss << ptr;
+	}
+	catch (const std::exception& e) {
+		return L.error("%s::__tostring : Exception (<<).\n%s",
+			type_name<Obj>().Data(),
+			e.what());
+	}
+	catch (...) {
+		return L.error("%s::__tostring : Exception (<<).",
+			type_name<Obj>().Data());
+	}
 	auto str = ss.str();
 
 	L.pushlstring(str.data(), str.size());
@@ -1446,14 +1525,15 @@ static int f_range_next(lua_State* L_) {
 	const int argnum = L.gettop();
 
 	if (argnum != 1 && argnum != 2) {
-		return L.error("range_next : The number of arguments is invalid. The function needs 1/2 argument (end_iter[, iter/nil]).");
+		return L.error("%s::range_next : The number of arguments is invalid. The function needs 1/2 argument (end_iter[, iter/nil]).",
+			type_name<Obj>().Data());
 	}
 
 	UDRefl::ObjectView ptr = *(Obj*)L.checkudata(1, type_name<Obj>().Data());
 	UDRefl::SharedObject end_iter = ptr.end();
 
 	if (!end_iter.GetType()) {
-		return L.error("range_next : The type (%s) can't invoke end.",
+		return L.error("%s::range_next : The type (%s) can't invoke end.",
 			type_name<Obj>().Data(),
 			ptr.GetType().GetName().data());
 	}
@@ -1461,37 +1541,51 @@ static int f_range_next(lua_State* L_) {
 		L.pushnil();
 
 	int type = L.type(2);
-	switch (type)
-	{
-	case LUA_TNIL:
-	{
-		UDRefl::SharedObject iter = ptr.begin();
-		if (!iter.GetType()) {
-			return L.error("range_next : The type (%s) can't invoke begin.",
-				type_name<Obj>().Data(),
-				ptr.GetType().GetName().data());
+	try {
+		switch (type)
+		{
+		case LUA_TNIL:
+		{
+			UDRefl::SharedObject iter = ptr.begin();
+			if (!iter.GetType()) {
+				return L.error("%s::range_next : The type (%s) can't invoke begin.",
+					type_name<Obj>().Data(),
+					ptr.GetType().GetName().data());
+			}
+			if (iter == end_iter)
+				L.pushnil();
+			else
+				details::push<UDRefl::SharedObject>(L, std::move(iter));
+			return 1;
 		}
-		if (iter == end_iter)
-			L.pushnil();
-		else
-			details::push<UDRefl::SharedObject>(L, std::move(iter));
-		return 1;
-	}
-	case LUA_TUSERDATA:
-	{
-		UDRefl::ObjectView iter = *(UDRefl::SharedObject*)L.checkudata(2, type_name<UDRefl::SharedObject>().Data());
-		UDRefl::SharedObject rst = ++iter;
-		if (!rst.GetType()) {
-			return L.error("range_next : The type (%s) can't invoke operator++().",
-				type_name<Obj>().Data(),
-				iter.GetType().GetName().data());
+		case LUA_TUSERDATA:
+		{
+			UDRefl::ObjectView iter = *(UDRefl::SharedObject*)L.checkudata(2, type_name<UDRefl::SharedObject>().Data());
+			UDRefl::SharedObject rst = ++iter;
+			if (!rst.GetType()) {
+				return L.error("%s::range_next : The type (%s) can't invoke operator++().",
+					type_name<Obj>().Data(),
+					iter.GetType().GetName().data());
+			}
+			if (iter == end_iter)
+				L.pushnil();
+			return 1; // stack top is the iter / nil
 		}
-		if (iter == end_iter)
-			L.pushnil();
-		return 1; // stack top is the iter / nil
+		default:
+			return L.error("%s::range_next : The second arguments must be a nil/iter.",
+				type_name<Obj>().Data());
+		}
 	}
-	default:
-		return L.error("range_next : The second arguments must be a nil/iter.");
+	catch (const std::exception& e) {
+		return L.error("%s::tuple_bind : Exception.\n%s",
+			type_name<Obj>().Data(),
+			e.what()
+		);
+	}
+	catch (...) {
+		return L.error("%s::range_next : Exception.\n",
+			type_name<Obj>().Data()
+		);
 	}
 }
 
@@ -1547,10 +1641,23 @@ template<typename Obj>
 static int f_Obj_tuple_bind(lua_State* L_) {
 	LuaStateView L{ L_ };
 	auto obj = details::auto_get<UDRefl::ObjectView>(L, 1);
-	std::size_t n = obj.tuple_size();
-	for (std::size_t i{ 0 }; i < n; i++)
-		details::push(L, obj.tuple_get(i));
-	return static_cast<int>(n);
+	try {
+		std::size_t n = obj.tuple_size();
+		for (std::size_t i{ 0 }; i < n; i++)
+			details::push(L, obj.tuple_get(i));
+		return static_cast<int>(n);
+	}
+	catch (const std::exception& e) {
+		return L.error("%s::tuple_bind : Exception.\n%s",
+			type_name<Obj>().Data(),
+			e.what()
+		);
+	}
+	catch (...) {
+		return L.error("%s::tuple_bind : Exception.\n",
+			type_name<Obj>().Data()
+		);
+	}
 }
 
 static int f_SharedObject_new(lua_State* L_) {
@@ -1591,23 +1698,28 @@ static int f_SharedObject_new(lua_State* L_) {
 		assert(success);
 	}
 	auto* rsrc = (std::pmr::unsynchronized_pool_resource*)L.touserdata(-1);
-	UDRefl::SharedObject obj = UDRefl::Mngr->MMakeShared(
-		type,
-		rsrc,
-		std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
-		static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
-	);
+	UDRefl::SharedObject obj;
+	try {
+		obj = UDRefl::Mngr->MMakeShared(
+			type,
+			rsrc,
+			std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
+			static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+		);
+	}
+	catch (const std::exception& e) {
+		return L.error("%s::new : Fail.\n%s", type_name<UDRefl::SharedObject>().Data(), e.what());
+	}
+	catch (...) {
+		return L.error("%s::new : Fail.", type_name<UDRefl::SharedObject>().Data());
+	}
 
 	if (!obj.GetType())
 		return L.error("%s::new : Fail.", type_name<UDRefl::SharedObject>().Data());
 
 	obj = { UDRefl::ObjectView{obj.GetType(), obj.GetPtr()},[rsrc_ref = LuaRef{L}, buffer = obj.GetBuffer()](void*){} };
 
-	auto* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
-	new(buffer)UDRefl::SharedObject{ std::move(obj) };
-
-	L.getmetatable(type_name<UDRefl::SharedObject>().Data());
-	L.setmetatable(-2);
+	details::push(L, std::move(obj));
 
 	return 1;
 }
@@ -1874,11 +1986,11 @@ static int luaopen_SharedObject(lua_State* L_) {
 }
 
 static const luaL_Reg UDRefl_libs[] = {
-  {"Name", luaopen_Name},
-  {"Type", luaopen_Type},
-  {"ObjectView", luaopen_ObjectView},
-  {"SharedObject", luaopen_SharedObject},
-  {NULL, NULL}
+	{"Name", luaopen_Name},
+	{"Type", luaopen_Type},
+	{"ObjectView", luaopen_ObjectView},
+	{"SharedObject", luaopen_SharedObject},
+	{NULL, NULL}
 };
 
 void luaopen_UDRefl_libs(lua_State* L_) {
