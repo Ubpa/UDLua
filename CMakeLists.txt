@@ -8,7 +8,7 @@ Ubpa_InitUCMake(VERSION 0.6.4)
 
 Ubpa_InitProject()
 
-set(Ubpa_UDRefl_Build_BootStrap true)
+set(Ubpa_UDRefl_Build_ext_Bootstrap true)
 
 Ubpa_AddDep(ULuaW  0.1.1)
 Ubpa_AddDep(UDRefl 0.8.2)
