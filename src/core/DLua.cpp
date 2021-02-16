@@ -9,6 +9,7 @@
 
 using namespace Ubpa;
 
+// Meta
 namespace Ubpa::details {
 	namespace Meta {
 		static constexpr auto add = TSTR("__add");
@@ -460,6 +461,15 @@ namespace Ubpa::details {
 namespace Ubpa::details {
 	static constexpr const char UnsyncRsrc[] = "UDRefl::UnsyncRsrc";
 
+	class LuaStackPopGuard {
+	public:
+		LuaStackPopGuard(LuaStateView L, int n) : L{ L }, n { n } {}
+		~LuaStackPopGuard() { L.pop(n); }
+	private:
+		LuaStateView L;
+		int n;
+	};
+
 	struct ArgStack {
 		void* argptr_buffer[UDRefl::MaxArgNum];
 		std::aligned_storage_t<sizeof(Type), alignof(Type)> argType_buffer[UDRefl::MaxArgNum];
@@ -530,8 +540,12 @@ namespace Ubpa::details {
 
 	template<typename Ret>
 	void push(LuaStateView L, Ret rst) {
-		if constexpr (std::is_reference_v<Ret>)
-			static_assert(always_false<Ret>);
+		if constexpr (std::is_reference_v<Ret>) {
+			if constexpr (std::is_const_v<std::remove_reference_t<Ret>>)
+				push(L, static_cast<std::remove_cvref_t<Ret>>(rst));
+			else
+				static_assert(always_false<Ret>);
+		}
 		else if constexpr (std::is_integral_v<Ret>) {
 			if constexpr (std::is_same_v<std::decay_t<Ret>, bool>)
 				L.pushboolean(rst);
@@ -675,17 +689,35 @@ namespace Ubpa::details {
 		Type object_type;
 		UDRefl::ParamList list;
 
-		// [object type, ]function[, result type = Type_of<void>]
-		// [, ParamList = {}]
+		// [object type, ]function[, result type = Type_of<void>][, ParamList = {}]
 
-		if (L_argnum == 1) { // function
+		constexpr auto GetParamList = [](LuaStateView L, int idx) -> UDRefl::ParamList {
+			auto obj = auto_get<UDRefl::ObjectView>(L, idx).RemoveConst();
+			if (!obj.GetType().Is<UDRefl::ParamList>()) {
+				L.error(
+					"%s::new_MethodPtr :"
+					"The %dth arguments (%s) isn't ParamList.",
+					type_name<UDRefl::SharedObject>().Data(), idx, obj.GetType().GetName().data());
+				return {};
+			}
+			return obj.As<UDRefl::ParamList>();
+		};
+
+		switch (L_argnum) {
+		case 1: // function
 			L.checktype(1, LUA_TFUNCTION);
 			func_ref = std::move(LuaRef{ L });
-		}
-		else if (L_argnum == 2) { // object type + function / function + result type
-			if (L.type(1) == LUA_TFUNCTION) {
-				// function + result type
-				object_type = auto_get<Type>(L, 2);
+			break;
+		case 2: // object type + function | function + result type | function + paramlist
+			if (L.type(1) == LUA_TFUNCTION) { // function + result type | function + paramlist
+				if (L.testudata(2, type_name<Type>().Data())) // function + result type
+					result_type = auto_get<Type>(L, 2);
+				else if (L.testudata(2, type_name<UDRefl::ParamList>().Data())) // function + paramlist
+					list = GetParamList(L, 2);
+				else {
+					return L.error("%s::new_MethodPtr: The 2nd argument should be a Type/ParamList.",
+						type_name<UDRefl::SharedObject>().Data());
+				}
 				L.pop(1);
 				func_ref = std::move(LuaRef{ L });
 			}
@@ -694,19 +726,49 @@ namespace Ubpa::details {
 				object_type = auto_get<Type>(L, 1);
 				func_ref = std::move(LuaRef{ L });
 			}
-		}
-		else if (L_argnum == 3) {
+			break;
+		case 3: // object type + function + result type | object type + function + paramlist | function + result type + paramlist
+			if (L.type(1) == LUA_TFUNCTION) { // function + result type + paramlist
+				result_type = auto_get<Type>(L, 2);
+				list = GetParamList(L, 3);
+				L.pop(2);
+				func_ref = std::move(LuaRef{ L });
+			}
+			else { // object type + function + result type | object type + function + paramlist
+				L.checktype(2, LUA_TFUNCTION);
+				object_type = auto_get<Type>(L, 1);
+				if (L.testudata(3, type_name<Type>().Data())) // object type + function + result type
+					result_type = auto_get<Type>(L, 3);
+				else if (L.testudata(3, type_name<UDRefl::ParamList>().Data())) // object type + function + paramlist
+					list = GetParamList(L, 3);
+				else {
+					return L.error("%s::new_MethodPtr: The 2nd argument should be a Type/ParamList.",
+						type_name<UDRefl::SharedObject>().Data());
+				}
+				L.pop(1);
+				func_ref = std::move(LuaRef{ L });
+			}
+			break;
+		case 4: // object type + function + result type + paramlist
+			L.checktype(2, LUA_TFUNCTION);
 			object_type = auto_get<Type>(L, 1);
 			result_type = auto_get<Type>(L, 3);
-			L.pop(1);
-			L.checktype(2, LUA_TFUNCTION);
+			list = GetParamList(L, 4);
+			L.pop(2);
 			func_ref = std::move(LuaRef{ L });
-		}
-		else {
+			break;
+		default:
 			return L.error(
 				"%s::new_MethodPtr :"
 				"The number of arguments (%d) is invalid. The function needs 1~4 arguments([object type, ]function[, result type][, ParamList]).",
 				type_name<UDRefl::SharedObject>().Data(), L_argnum);
+		}
+
+		if (result_type.IsConst()) {
+			return L.error(
+				"%s::new_MethodPtr :"
+				"The result type ($s) must be non-const.",
+				type_name<UDRefl::SharedObject>().Data(), result_type.GetName().data());
 		}
 		
 		UDRefl::MethodFlag flag;
@@ -720,7 +782,12 @@ namespace Ubpa::details {
 		methodptr_obj = {
 			Type_of<UDRefl::MethodPtr>,
 			std::make_shared<UDRefl::MethodPtr>(
-				UDRefl::MethodPtr::Func{ [object_type, result_type, fref = std::make_shared<LuaRef>(std::move(func_ref))] (void* obj, void* result_buffer, UDRefl::ArgsView args) mutable {
+				[
+					object_type = UDRefl::Mngr->tregistry.RegisterAddLValueReference(object_type),
+					result_type,
+					fref = std::make_shared<LuaRef>(std::move(func_ref))
+				] (void* obj, void* result_buffer, UDRefl::ArgsView args) mutable
+				{
 					auto L = fref->GetView();
 					int top = L.gettop();
 					fref->Get();
@@ -739,6 +806,8 @@ namespace Ubpa::details {
 					for (std::size_t i = 0; i < n; i++)
 						push(L, args.At(i));
 					int error = L.pcall(callargnum, LUA_MULTRET, 0);
+					int result_construct_argnum = L.gettop() - top;
+					details::LuaStackPopGuard popguard{ L, result_construct_argnum };
 					if (error) {
 						std::stringstream ss;
 						ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
@@ -748,10 +817,60 @@ namespace Ubpa::details {
 						throw except;
 					}
 
+
 					if (!result_buffer || !result_type || result_type.IsVoid())
 						return;
 
-					int result_construct_argnum = L.gettop() - top;
+					if (result_type.IsReference()) {
+						if (result_construct_argnum != 1) {
+							std::stringstream ss;
+							ss
+								<< type_name<UDRefl::SharedObject>().View()
+								<< "::new_MethodPtr::lambda: The result type is reference, so the number ("
+								<< result_construct_argnum
+								<< ") of return values must be 1"
+								;
+							std::string str = ss.str();
+							std::exception except{ str.data() };
+							throw except;
+						}
+						UDRefl::ObjectView return_obj;
+						if (void* obj = L.testudata(-1, type_name<UDRefl::ObjectView>().Data()))
+							return_obj = *reinterpret_cast<UDRefl::ObjectView*>(obj);
+						else if (void* obj = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
+							auto* sobj = reinterpret_cast<UDRefl::SharedObject*>(obj);
+							return_obj = { sobj->GetType(), sobj->GetPtr() };
+						}
+						else {
+							std::stringstream ss;
+							ss
+								<< type_name<UDRefl::SharedObject>().View()
+								<< "::new_MethodPtr::lambda: The result type is reference, so the return type must be a ObjectView/SharedObject"
+								;
+							std::string str = ss.str();
+							std::exception except{ str.data() };
+							throw except;
+						}
+
+						if(!UDRefl::ReflMngr::IsNonCopiedArgCompatible(std::span<const Type>{&result_type, 1}, std::span<const Type>{&return_obj.GetType(), 1})) {
+							std::stringstream ss;
+							ss
+								<< type_name<UDRefl::SharedObject>().View()
+								<< "::new_MethodPtr::lambda: The result type is reference, but result type ("
+								<< result_type.GetName()
+								<< ") is not compatible with return type ("
+								<< return_obj.GetType().GetName()
+								<< ")"
+								;
+							std::string str = ss.str();
+							std::exception except{ str.data() };
+							throw except;
+						}
+
+						UDRefl::buffer_as<void*>(result_buffer) = return_obj.GetPtr();
+						return;
+					}
+
 					ArgStack argstack;
 					{ // fill argstack
 						int error = details::FillArgStack(L, argstack, top + 1, result_construct_argnum);
@@ -780,7 +899,7 @@ namespace Ubpa::details {
 							throw except;
 						}
 					}
-				}},
+				},
 				flag,
 				result_type,
 				std::move(list)
@@ -1018,12 +1137,7 @@ static int f_meta(lua_State * L_) {
 			static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 		);
 
-		if (!rst.GetType()) {
-			return L.error("%s::%s : The function isn't invocable with arguments.",
-				type_name<Functor>().Data(),
-				MetaName::Data()
-			);
-		}
+		rst = { UDRefl::ObjectView{rst.GetType(), rst.GetPtr()},[rsrc_ref = LuaRef{L}, buffer = rst.GetBuffer()](void*){} };
 
 		if (rst.GetType().Is<void>())
 			return 0;
@@ -1487,6 +1601,8 @@ static int f_SharedObject_new(lua_State* L_) {
 	if (!obj.GetType())
 		return L.error("%s::new : Fail.", type_name<UDRefl::SharedObject>().Data());
 
+	obj = { UDRefl::ObjectView{obj.GetType(), obj.GetPtr()},[rsrc_ref = LuaRef{L}, buffer = obj.GetBuffer()](void*){} };
+
 	auto* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
 	new(buffer)UDRefl::SharedObject{ std::move(obj) };
 
@@ -1585,18 +1701,23 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"back",& f_meta<UDRefl::ObjectView, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
 	"empty",& f_meta<UDRefl::ObjectView, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1, bool>,
 	"size",& f_meta<UDRefl::ObjectView, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1, std::size_t>,
+	"resize",& f_meta<UDRefl::ObjectView, details::CppMeta::t_resize, details::CppMetaName::t_container_resize, 2, void>,
 	"capacity",& f_meta<UDRefl::ObjectView, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1, std::size_t>,
 	"bucket_count",& f_meta<UDRefl::ObjectView, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1, std::size_t>,
+	"reserve",& f_meta<UDRefl::ObjectView, details::CppMeta::t_reserve, details::CppMetaName::t_container_reserve, 2, void>,
+	"shrink_to_fit",& f_meta<UDRefl::ObjectView, details::CppMeta::t_shrink_to_fit, details::CppMetaName::t_container_shrink_to_fit, 1, void>,
+	"clear",& f_meta<UDRefl::ObjectView, details::CppMeta::t_clear, details::CppMetaName::t_container_clear, 1, void>,
+	"insert",& f_meta<UDRefl::ObjectView, details::CppMeta::t_insert, details::CppMetaName::t_container_insert>,
+	"erase",& f_meta<UDRefl::ObjectView, details::CppMeta::t_erase, details::CppMetaName::t_container_erase, 2>,
+	"push_front",& f_meta<UDRefl::ObjectView, details::CppMeta::t_push_front, details::CppMetaName::t_container_push_front, 2, void>,
+	"pop_front",& f_meta<UDRefl::ObjectView, details::CppMeta::t_pop_front, details::CppMetaName::t_container_pop_front, 1, void>,
+	"push_back",& f_meta<UDRefl::ObjectView, details::CppMeta::t_push_back, details::CppMetaName::t_container_push_back, 2, void>,
+	"pop_back",& f_meta<UDRefl::ObjectView, details::CppMeta::t_pop_back, details::CppMetaName::t_container_pop_back, 1, void>,
 	"count",& f_meta<UDRefl::ObjectView, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2, std::size_t>,
 	"find",& f_meta<UDRefl::ObjectView, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
 	"lower_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
 	"upper_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
 	"equal_range",& f_meta<UDRefl::ObjectView, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
-	"key_comp",& f_meta<UDRefl::ObjectView, details::CppMeta::t_key_comp, details::CppMetaName::t_container_key_comp, 1>,
-	"value_comp",& f_meta<UDRefl::ObjectView, details::CppMeta::t_value_comp, details::CppMetaName::t_container_value_comp, 1>,
-	"hash_function",& f_meta<UDRefl::ObjectView, details::CppMeta::t_hash_function, details::CppMetaName::t_container_hash_function, 1>,
-	"key_eq",& f_meta<UDRefl::ObjectView, details::CppMeta::t_key_eq, details::CppMetaName::t_container_key_eq, 1>,
-	"get_allocator",& f_meta<UDRefl::ObjectView, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
 
 	"range", f_Obj_range<UDRefl::ObjectView>,
 	"tuple_bind", f_Obj_tuple_bind<UDRefl::ObjectView>,
@@ -1669,18 +1790,23 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
 	"empty",& f_meta<UDRefl::SharedObject, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1, bool>,
 	"size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1, std::size_t>,
+	"resize",& f_meta<UDRefl::SharedObject, details::CppMeta::t_resize, details::CppMetaName::t_container_resize, 2, void>,
 	"capacity",& f_meta<UDRefl::SharedObject, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1, std::size_t>,
 	"bucket_count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1, std::size_t>,
+	"reserve",& f_meta<UDRefl::SharedObject, details::CppMeta::t_reserve, details::CppMetaName::t_container_reserve, 2, void>,
+	"shrink_to_fit",& f_meta<UDRefl::SharedObject, details::CppMeta::t_shrink_to_fit, details::CppMetaName::t_container_shrink_to_fit, 1, void>,
+	"clear",& f_meta<UDRefl::SharedObject, details::CppMeta::t_clear, details::CppMetaName::t_container_clear, 1, void>,
+	"insert",& f_meta<UDRefl::SharedObject, details::CppMeta::t_insert, details::CppMetaName::t_container_insert>,
+	"erase",& f_meta<UDRefl::SharedObject, details::CppMeta::t_erase, details::CppMetaName::t_container_erase, 2>,
+	"push_front",& f_meta<UDRefl::SharedObject, details::CppMeta::t_push_front, details::CppMetaName::t_container_push_front, 2, void>,
+	"pop_front",& f_meta<UDRefl::SharedObject, details::CppMeta::t_pop_front, details::CppMetaName::t_container_pop_front, 1, void>,
+	"push_back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_push_back, details::CppMetaName::t_container_push_back, 2, void>,
+	"pop_back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_pop_back, details::CppMetaName::t_container_pop_back, 1, void>,
 	"count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2, std::size_t>,
 	"find",& f_meta<UDRefl::SharedObject, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
 	"lower_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
 	"upper_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
 	"equal_range",& f_meta<UDRefl::SharedObject, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
-	"key_comp",& f_meta<UDRefl::SharedObject, details::CppMeta::t_key_comp, details::CppMetaName::t_container_key_comp, 1>,
-	"value_comp",& f_meta<UDRefl::SharedObject, details::CppMeta::t_value_comp, details::CppMetaName::t_container_value_comp, 1>,
-	"hash_function",& f_meta<UDRefl::SharedObject, details::CppMeta::t_hash_function, details::CppMetaName::t_container_hash_function, 1>,
-	"key_eq",& f_meta<UDRefl::SharedObject, details::CppMeta::t_key_eq, details::CppMetaName::t_container_key_eq, 1>,
-	"get_allocator",& f_meta<UDRefl::SharedObject, details::CppMeta::t_get_allocator, details::CppMetaName::t_container_get_allocator, 1>,
 
 	"range", f_Obj_range<UDRefl::SharedObject>,
 	"tuple_bind", f_Obj_tuple_bind<UDRefl::SharedObject>,

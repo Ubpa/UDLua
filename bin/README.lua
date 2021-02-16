@@ -27,3 +27,7 @@ for iter in v:GetTypeFieldVars():range() do
     local type, field, var = iter:__deref():tuple_bind()
     print(field.name:GetView() .. ": ".. var)
 end
+
+-- clear
+collectgarbage()
+ObjectView.ReflMngr.typeinfos:erase(vec)
