@@ -458,6 +458,8 @@ namespace Ubpa::details {
 //}
 
 namespace Ubpa::details {
+	static constexpr const char UnsyncRsrc[] = "UDRefl::UnsyncRsrc";
+
 	struct ArgStack {
 		void* argptr_buffer[UDRefl::MaxArgNum];
 		std::aligned_storage_t<sizeof(Type), alignof(Type)> argType_buffer[UDRefl::MaxArgNum];
@@ -974,7 +976,7 @@ static int f_meta(lua_State * L_) {
 		Type result_type = ptr.IsInvocable(method_name,
 			std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer),
 			static_cast<std::size_t>(actual_argnum)});
-		if (result_type.Is<Ret>()) {
+		if (!result_type.Is<Ret>()) {
 			return L.error("%s::%s : The function isn't invocable with arguments or it's return type isn't %s.",
 				type_name<Functor>().Data(),
 				MetaName::Data(),
@@ -1003,8 +1005,15 @@ static int f_meta(lua_State * L_) {
 		}
 	}
 	else {
-		UDRefl::SharedObject rst = ptr.Invoke(
+		{ // get unsync resource
+			int success = L.getfield(LUA_REGISTRYINDEX, details::UnsyncRsrc);
+			assert(success);
+		}
+		auto* rsrc = (std::pmr::unsynchronized_pool_resource*)L.touserdata(-1);
+		UDRefl::SharedObject rst = ptr.MInvoke(
 			method_name,
+			rsrc,
+			rsrc,
 			std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(actual_argnum)},
 			static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 		);
@@ -1019,10 +1028,7 @@ static int f_meta(lua_State * L_) {
 		if (rst.GetType().Is<void>())
 			return 0;
 
-		void* buffer = L.newuserdata(sizeof(UDRefl::SharedObject));
-		new(buffer)UDRefl::SharedObject{ std::move(rst) };
-		L.getmetatable(type_name<UDRefl::SharedObject>().Data());
-		L.setmetatable(-2);
+		details::push(L, std::move(rst));
 
 		return 1;
 	}
@@ -1466,8 +1472,14 @@ static int f_SharedObject_new(lua_State* L_) {
 			type_name<UDRefl::SharedObject>().Data(), L.tostring(-1));
 	}
 
-	UDRefl::SharedObject obj = UDRefl::Mngr->MakeShared(
+	{ // get unsync resource
+		int success = L.getfield(LUA_REGISTRYINDEX, details::UnsyncRsrc);
+		assert(success);
+	}
+	auto* rsrc = (std::pmr::unsynchronized_pool_resource*)L.touserdata(-1);
+	UDRefl::SharedObject obj = UDRefl::Mngr->MMakeShared(
 		type,
+		rsrc,
 		std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
 		static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 	);
@@ -1747,6 +1759,16 @@ void luaopen_UDRefl_libs(lua_State* L_) {
 	init_CallHandle(L_);
 
 	LuaStateView L{ L_ };
+
+	void* buffer = L.newuserdata(sizeof(std::pmr::unsynchronized_pool_resource));
+	new (buffer) std::pmr::unsynchronized_pool_resource{};
+	int success = L.newmetatable(type_name<std::pmr::unsynchronized_pool_resource>().Data());
+	L.pushcfunction(details::wrap_dtor<std::pmr::unsynchronized_pool_resource>());
+	L.setfield(-2, "__gc");
+	L.setmetatable(-2);
+	L.setfield(LUA_REGISTRYINDEX, details::UnsyncRsrc);
+	L.pop(1);
+
 	const luaL_Reg* lib;
 	// "require" functions from 'UDRefl_libs' and set results to global table
 	for (lib = UDRefl_libs; lib->func; lib++) {
