@@ -538,6 +538,18 @@ namespace Ubpa::details {
 			return *(T*)L.checkudata(idx, type_name<T>().Data());
 	}
 
+	template<typename T>
+	T* auto_get_userdata_ptr(LuaStateView L, int idx) {
+		if constexpr (std::is_same_v<T, UDRefl::ObjectView>) {
+			if (void* ptr = L.testudata(idx, type_name<UDRefl::ObjectView>().Data()))
+				return (UDRefl::ObjectView*)ptr;
+			else
+				return (UDRefl::SharedObject*)L.checkudata(idx, type_name<UDRefl::SharedObject>().Data());
+		}
+		else
+			return (T*)L.checkudata(idx, type_name<T>().Data());
+	}
+
 	template<typename Ret>
 	void push(LuaStateView L, Ret rst) {
 		if constexpr (std::is_reference_v<Ret>) {
@@ -970,7 +982,7 @@ namespace Ubpa::details {
 						FuncName::Data(),
 						static_cast<lua_Integer>(Length_v<ArgList>));
 
-				auto* obj = (Obj*)L.checkudata(1, type_name<Obj>().Data());
+				auto* obj = auto_get_userdata_ptr<Obj>(L, 1);
 				caller<funcptr>(L, obj, std::make_index_sequence<Length_v<ArgList>>{});
 			}
 			else if constexpr (is_function_pointer_v<FuncObj>) {
@@ -1026,7 +1038,7 @@ static int f_meta(lua_State * L_) {
 	else
 		functor_idx = 1;
 
-	const auto& functor = *(Functor*)L.checkudata(functor_idx, type_name<Functor>().Data());
+	const auto& functor = details::auto_get<Functor>(L, 1);
 
 	if constexpr (UDRefl::IsObjectOrView_v<Functor>) {
 		ptr = UDRefl::ObjectView{ functor.GetType(), functor.GetPtr() };
@@ -1280,14 +1292,11 @@ static int f_T_new(lua_State* L_) {
 	return 1;
 }
 
-template<typename Obj>
-static int f_Obj_new(lua_State* L_) {
+static int f_ObjectView_new(lua_State* L_) {
 	LuaStateView L{ L_ };
 	int size = L.gettop();
-	if (size == 0) {
-		void* buffer = L.newuserdata(sizeof(Obj));
-		new (buffer) Obj;
-	}
+	if (size == 0)
+		details::push(L, UDRefl::ObjectView{});
 	else if (size == 1) {
 		int type = L.type(-1);
 		switch (type)
@@ -1295,39 +1304,32 @@ static int f_Obj_new(lua_State* L_) {
 		case LUA_TUSERDATA:
 		{
 			auto* id = (Type*)L.checkudata(1, type_name<Type>().Data());
-			void* buffer = L.newuserdata(sizeof(Obj));
-			new (buffer) Obj{ *id };
+			details::push(L, UDRefl::ObjectView{ *id });
 			break;
 		}
 		case LUA_TNIL:
-		{
-			void* buffer = L.newuserdata(sizeof(Obj));
-			new (buffer) Obj{ nullptr };
+			details::push(L, UDRefl::ObjectView{});
 			break;
-		}
 		default:
-			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a Type/nil.", type_name<Obj>().Data());
+			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a Type/nil.", type_name<UDRefl::ObjectView>().Data());
 		}
 	}
 	else
-		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a Type/nil.", type_name<Obj>().Data());
+		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a Type/nil.", type_name<UDRefl::ObjectView>().Data());
 
-	L.getmetatable(type_name<Obj>().Data());
-	L.setmetatable(-2);
 	return 1;
 }
 
-template<typename Obj>
-static int f_Obj_AsNumber(lua_State* L_) {
+static int f_ObjectView_AsNumber(lua_State* L_) {
 	LuaStateView L{ L_ };
 
 	if (L.gettop() != 1)
-		return L.error("%s::AsNumber : The number of arguments is invalid. The function needs 1 argument (object).", type_name<Obj>().Data());
+		return L.error("%s::AsNumber : The number of arguments is invalid. The function needs 1 argument (object).", type_name<UDRefl::ObjectView>().Data());
 
-	auto ptr = static_cast<UDRefl::ObjectView>(*(Obj*)L.checkudata(1, type_name<Obj>().Data()));
+	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
 
 	if (!ptr.GetPtr())
-		return L.error("%s::AsNumber : The object is nil.", type_name<Obj>().Data());
+		return L.error("%s::AsNumber : The object is nil.", type_name<UDRefl::ObjectView>().Data());
 
 	ptr = ptr.RemoveConstReference();
 
@@ -1342,12 +1344,12 @@ static int f_Obj_AsNumber(lua_State* L_) {
 		}
 		catch (const std::exception& e) {
 			return L.error("%s::AsNumber : Invoke exception.\n%s",
-				type_name<Obj>().Data(),
+				type_name<UDRefl::ObjectView>().Data(),
 				e.what()
 			);
 		}
 		catch (...) {
-			return L.error("%s::%s : Invoke exception.\n", type_name<Obj>().Data());
+			return L.error("%s::%s : Invoke exception.\n", type_name<UDRefl::ObjectView>().Data());
 		}
 		L.pushinteger(value);
 	}
@@ -1358,39 +1360,38 @@ static int f_Obj_AsNumber(lua_State* L_) {
 		}
 		catch (const std::exception& e) {
 			return L.error("%s::AsNumber : Invoke exception.\n%s",
-				type_name<Obj>().Data(),
+				type_name<UDRefl::ObjectView>().Data(),
 				e.what()
 			);
 		}
 		catch (...) {
-			return L.error("%s::%s : Invoke exception.\n", type_name<Obj>().Data());
+			return L.error("%s::%s : Invoke exception.\n", type_name<UDRefl::ObjectView>().Data());
 		}
 		L.pushnumber(value);
 	}
 	else {
 		return L.error("%s::AsNumber : The type (%s) can't convert to a number.",
-			type_name<Obj>().Data(),
+			type_name<UDRefl::ObjectView>().Data(),
 			tname.data());
 	}
 
 	return 1;
 }
 
-template<typename Obj>
-static int f_Obj_tostring(lua_State* L_) {
+static int f_ObjectView_tostring(lua_State* L_) {
 	LuaStateView L{ L_ };
 
 	if (L.gettop() != 1)
-		return L.error("%s::__tostring : The number of arguments is invalid. The function needs 1 argument (object).", type_name<Obj>().Data());
+		return L.error("%s::__tostring : The number of arguments is invalid. The function needs 1 argument (object).", type_name<UDRefl::ObjectView>().Data());
 
-	auto& ptr = static_cast<UDRefl::ObjectView&>(*(Obj*)L.checkudata(1, type_name<Obj>().Data()));
+	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
 
 	if (!ptr.GetPtr())
-		return L.error("%s::__tostring : The object is nil.", type_name<Obj>().Data());
+		return L.error("%s::__tostring : The object is nil.", type_name<UDRefl::ObjectView>().Data());
 
 	if (!ptr.IsInvocable<std::stringstream&>(UDRefl::NameIDRegistry::Meta::operator_rshift)) {
 		return L.error("%s::__tostring : The type (%s) can't convert to a string.",
-			type_name<Obj>().Data(),
+			type_name<UDRefl::ObjectView>().Data(),
 			ptr.GetType().GetName().data());
 	}
 
@@ -1400,12 +1401,12 @@ static int f_Obj_tostring(lua_State* L_) {
 	}
 	catch (const std::exception& e) {
 		return L.error("%s::__tostring : Exception (<<).\n%s",
-			type_name<Obj>().Data(),
+			type_name<UDRefl::ObjectView>().Data(),
 			e.what());
 	}
 	catch (...) {
 		return L.error("%s::__tostring : Exception (<<).",
-			type_name<Obj>().Data());
+			type_name<UDRefl::ObjectView>().Data());
 	}
 	auto str = ss.str();
 
@@ -1414,12 +1415,11 @@ static int f_Obj_tostring(lua_State* L_) {
 	return 1;
 }
 
-template<typename Obj>
-static int f_Obj_index(lua_State* L_) {
+static int f_ObjectView_index(lua_State* L_) {
 	LuaStateView L{ L_ };
 
 	if (L.gettop() != 2)
-		return L.error("%s::__index : The number of arguments is invalid. The function needs 2 argument (object + key).", type_name<Obj>().Data());
+		return L.error("%s::__index : The number of arguments is invalid. The function needs 2 argument (object + key).", type_name<UDRefl::ObjectView>().Data());
 
 	int type = L.type(2);
 
@@ -1431,7 +1431,7 @@ static int f_Obj_index(lua_State* L_) {
 		if (auto* pName = (Name*)L.testudata(2, type_name<Name>().Data()))
 			key = *pName;
 		else
-			return f_meta<Obj, details::Meta::t_index, details::CppMetaName::t_operator_subscript, 2>(L_);
+			return f_meta<UDRefl::ObjectView, details::Meta::t_index, details::CppMetaName::t_operator_subscript, 2>(L_);
 
 		break;
 	}
@@ -1443,10 +1443,10 @@ static int f_Obj_index(lua_State* L_) {
 		break;
 	}
 	default:
-		return f_meta<Obj, details::Meta::t_index, details::CppMetaName::t_operator_subscript, 2>(L_);
+		return f_meta<UDRefl::ObjectView, details::Meta::t_index, details::CppMetaName::t_operator_subscript, 2>(L_);
 	}
 	
-	UDRefl::ObjectView ptr = *(Obj*)L.checkudata(1, type_name<Obj>().Data());
+	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
 
 	if (key.Is("this")) {
 		L.pushvalue(1);
@@ -1467,7 +1467,7 @@ static int f_Obj_index(lua_State* L_) {
 	else {
 		if (!key) {
 			return L.error("%s::__index : %s can't index a non-var and non-method Name.",
-				type_name<Obj>().Data(),
+				type_name<UDRefl::ObjectView>().Data(),
 				ptr.GetType().GetName().data());
 		}
 
@@ -1476,7 +1476,7 @@ static int f_Obj_index(lua_State* L_) {
 		int contain = L.getfield(-1, key.GetView().data());
 		if (!contain) {
 			return L.error("%s::__index : %s not contain %s.",
-				type_name<Obj>().Data(),
+				type_name<UDRefl::ObjectView>().Data(),
 				ptr.GetType().GetName().data(),
 				key.GetView().data());
 		}
@@ -1484,18 +1484,16 @@ static int f_Obj_index(lua_State* L_) {
 	return 1;
 }
 
-template<typename Obj>
-static int f_Obj_newindex(lua_State* L_) {
+static int f_ObjectView_newindex(lua_State* L_) {
 	LuaStateView L{ L_ };
 	if (L.gettop() != 3) {
 		return L.error("%s::__newindex : The number of arguments is invalid. The function needs 3 argument (object, key, value).",
-			type_name<Obj>().Data());
+			type_name<UDRefl::ObjectView>().Data());
 	}
 
 	// stack : ptr, key, value
 	L.getmetatable(type_name<UDRefl::ObjectView>().Data());
-	L.getmetatable(type_name<Obj>().Data());
-	L.getfield(-2, details::CppMeta::op_assign.Data());
+	L.getfield(-1, details::CppMeta::op_assign.Data());
 	L.getfield(-2, details::Meta::index.Data());
 	L.rotate(1, -2);
 	// stack : value, ..., __assign, __index, ptr, key
@@ -1503,7 +1501,7 @@ static int f_Obj_newindex(lua_State* L_) {
 		int error = L.pcall(2, 1, 0);
 		if (error) {
 			return L.error("%s::__newindex::__index: %s",
-				type_name<Obj>().Data(), L.tostring(-1));
+				type_name<UDRefl::ObjectView>().Data(), L.tostring(-1));
 		}
 	}
 	// stack : value, ..., __assign, __index result (member ptr)
@@ -1513,28 +1511,27 @@ static int f_Obj_newindex(lua_State* L_) {
 		int error = L.pcall(2, 1, 0);
 		if (error) {
 			return L.error("%s::__newindex::__assign: %s",
-				type_name<Obj>().Data(), L.tostring(-1));
+				type_name<UDRefl::ObjectView>().Data(), L.tostring(-1));
 		}
 	}
 	return 0;
 }
 
-template<typename Obj>
-static int f_range_next(lua_State* L_) {
+static int f_ObjectView_range_next(lua_State* L_) {
 	LuaStateView L{ L_ };
 	const int argnum = L.gettop();
 
 	if (argnum != 1 && argnum != 2) {
 		return L.error("%s::range_next : The number of arguments is invalid. The function needs 1/2 argument (end_iter[, iter/nil]).",
-			type_name<Obj>().Data());
+			type_name<UDRefl::ObjectView>().Data());
 	}
 
-	UDRefl::ObjectView ptr = *(Obj*)L.checkudata(1, type_name<Obj>().Data());
+	auto ptr = details::auto_get< UDRefl::ObjectView>(L, 1);
 	UDRefl::SharedObject end_iter = ptr.end();
 
 	if (!end_iter.GetType()) {
 		return L.error("%s::range_next : The type (%s) can't invoke end.",
-			type_name<Obj>().Data(),
+			type_name<UDRefl::ObjectView>().Data(),
 			ptr.GetType().GetName().data());
 	}
 	if (argnum == 1)
@@ -1549,7 +1546,7 @@ static int f_range_next(lua_State* L_) {
 			UDRefl::SharedObject iter = ptr.begin();
 			if (!iter.GetType()) {
 				return L.error("%s::range_next : The type (%s) can't invoke begin.",
-					type_name<Obj>().Data(),
+					type_name<UDRefl::ObjectView>().Data(),
 					ptr.GetType().GetName().data());
 			}
 			if (iter == end_iter)
@@ -1564,7 +1561,7 @@ static int f_range_next(lua_State* L_) {
 			UDRefl::SharedObject rst = ++iter;
 			if (!rst.GetType()) {
 				return L.error("%s::range_next : The type (%s) can't invoke operator++().",
-					type_name<Obj>().Data(),
+					type_name<UDRefl::ObjectView>().Data(),
 					iter.GetType().GetName().data());
 			}
 			if (iter == end_iter)
@@ -1573,63 +1570,61 @@ static int f_range_next(lua_State* L_) {
 		}
 		default:
 			return L.error("%s::range_next : The second arguments must be a nil/iter.",
-				type_name<Obj>().Data());
+				type_name<UDRefl::ObjectView>().Data());
 		}
 	}
 	catch (const std::exception& e) {
 		return L.error("%s::tuple_bind : Exception.\n%s",
-			type_name<Obj>().Data(),
+			type_name<UDRefl::ObjectView>().Data(),
 			e.what()
 		);
 	}
 	catch (...) {
 		return L.error("%s::range_next : Exception.\n",
-			type_name<Obj>().Data()
+			type_name<UDRefl::ObjectView>().Data()
 		);
 	}
 }
 
-template<typename Obj>
-static int f_Obj_range(lua_State* L_) {
+static int f_ObjectView_range(lua_State* L_) {
 	LuaStateView L{ L_ };
 	if (L.gettop() != 1) {
 		return L.error("%s::range : The number of arguments is invalid. The function needs 1 argument (obj).",
-			type_name<Obj>().Data());
+			type_name<UDRefl::ObjectView>().Data());
 	}
-	L.checkudata(1, type_name<Obj>().Data());
-	L.pushcfunction(&f_range_next<Obj>);
+	details::auto_get<UDRefl::ObjectView>(L, 1);
+	L.pushcfunction(f_ObjectView_range_next);
 	L.pushvalue(1);
 	L.pushnil();
 	return 3;
 }
 
-template<typename Obj>
-static int f_Obj_concat(lua_State* L_) {
+static int f_ObjectView_concat(lua_State* L_) {
 	LuaStateView L{ L_ };
 
 	if (L.gettop() != 2) {
 		return L.error("%s::__concat : The number of arguments is invalid. The function needs 2 argument.",
-			type_name<Obj>().Data());
+			type_name<UDRefl::ObjectView>().Data());
 	}
 
-	if (L.testudata(1, type_name<Obj>().Data())) {
-		L.pushcfunction(f_Obj_tostring<Obj>);
+	if (L.testudata(1, type_name<UDRefl::ObjectView>().Data()) || L.testudata(1, type_name<UDRefl::SharedObject>().Data())) {
+		L.pushcfunction(f_ObjectView_tostring);
 		L.rotate(1, -1);
 		int error = L.pcall(1, 1, 0);
 		if (error) {
 			return L.error("%s::__concat : The object call __tostring failed.\n",
-				type_name<Obj>().Data(), L.tostring(-1));
+				type_name<UDRefl::ObjectView>().Data(), L.tostring(-1));
 		}
 		L.rotate(1, 1);
 	}
 	else {
 		L.rotate(1, 1);
-		L.pushcfunction(f_Obj_tostring<Obj>);
+		L.pushcfunction(f_ObjectView_tostring);
 		L.rotate(1, -1);
 		int error = L.pcall(1, 1, 0);
 		if (error) {
 			return L.error("%s::__concat : The object call __tostring failed.\n",
-				type_name<Obj>().Data(), L.tostring(-1));
+				type_name<UDRefl::ObjectView>().Data(), L.tostring(-1));
 		}
 	}
 
@@ -1637,8 +1632,7 @@ static int f_Obj_concat(lua_State* L_) {
 	return 1;
 }
 
-template<typename Obj>
-static int f_Obj_tuple_bind(lua_State* L_) {
+static int f_ObjectView_tuple_bind(lua_State* L_) {
 	LuaStateView L{ L_ };
 	auto obj = details::auto_get<UDRefl::ObjectView>(L, 1);
 	try {
@@ -1649,13 +1643,13 @@ static int f_Obj_tuple_bind(lua_State* L_) {
 	}
 	catch (const std::exception& e) {
 		return L.error("%s::tuple_bind : Exception.\n%s",
-			type_name<Obj>().Data(),
+			type_name<UDRefl::ObjectView>().Data(),
 			e.what()
 		);
 	}
 	catch (...) {
 		return L.error("%s::tuple_bind : Exception.\n",
-			type_name<Obj>().Data()
+			type_name<UDRefl::ObjectView>().Data()
 		);
 	}
 }
@@ -1751,14 +1745,14 @@ static const struct luaL_Reg meta_Type[] = {
 };
 
 static const struct luaL_Reg lib_ObjectView[] = {
-	"new"     , f_Obj_new<UDRefl::ObjectView>,
-	NULL      , NULL
+	"new", f_ObjectView_new,
+	NULL, NULL
 };
 
 static const struct luaL_Reg meta_ObjectView[] = {
 	"GetType", details::wrap<&UDRefl::ObjectView::GetType, UDRefl::ObjectView>(TSTR("GetType")),
 	"GetPtr", details::wrap<&UDRefl::ObjectView::GetPtr, UDRefl::ObjectView>(TSTR("GetPtr")),
-	"AsNumber", f_Obj_AsNumber<UDRefl::ObjectView>,
+	"AsNumber", f_ObjectView_AsNumber,
 
 	"StaticCast_DerivedToBase", details::wrap<&UDRefl::ObjectView::StaticCast_DerivedToBase, UDRefl::ObjectView>(TSTR("StaticCast_DerivedToBase")),
 	"StaticCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::StaticCast_BaseToDerived, UDRefl::ObjectView>(TSTR("StaticCast_BaseToDerived")),
@@ -1782,10 +1776,10 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"GetTypeFieldVars", f_ReflMngr_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetTypeFieldVars>,
 	"GetVars", f_ReflMngr_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetVars>,
 
-	"__index", &f_Obj_index<UDRefl::ObjectView>,
-	"__newindex",& f_Obj_newindex<UDRefl::ObjectView>,
-	"__tostring", &f_Obj_tostring<UDRefl::ObjectView>,
-	"__concat",& f_Obj_concat<UDRefl::ObjectView>,
+	"__index", f_ObjectView_index,
+	"__newindex", f_ObjectView_newindex,
+	"__tostring", f_ObjectView_tostring,
+	"__concat", f_ObjectView_concat,
 	"__call",  &f_meta<UDRefl::ObjectView, details::Meta::t_call, details::CppMetaName::t_operator_call>,
 	"__add", &f_meta<UDRefl::ObjectView, details::Meta::t_add, details::CppMetaName::t_operator_add, 2, details::Invalid, true>,
 	"__band", &f_meta<UDRefl::ObjectView, details::Meta::t_band, details::CppMetaName::t_operator_band, 2, details::Invalid, true>,
@@ -1851,8 +1845,8 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"upper_bound",& f_meta<UDRefl::ObjectView, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
 	"equal_range",& f_meta<UDRefl::ObjectView, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
 
-	"range", f_Obj_range<UDRefl::ObjectView>,
-	"tuple_bind", f_Obj_tuple_bind<UDRefl::ObjectView>,
+	"range", f_ObjectView_range,
+	"tuple_bind", f_ObjectView_tuple_bind,
 
 	NULL      , NULL
 };
@@ -1863,108 +1857,7 @@ static const struct luaL_Reg lib_SharedObject[] = {
 	NULL, NULL
 };
 
-static const struct luaL_Reg meta_SharedObject[] = {
-	"GetType", details::wrap<&UDRefl::SharedObject::GetType, UDRefl::SharedObject>(TSTR("GetType")),
-	"GetPtr", details::wrap<&UDRefl::SharedObject::GetPtr, UDRefl::SharedObject>(TSTR("GetPtr")),
-	"AsNumber", f_Obj_AsNumber<UDRefl::SharedObject>,
-
-	"StaticCast_DerivedToBase", details::wrap<&UDRefl::ObjectView::StaticCast_DerivedToBase, UDRefl::SharedObject>(TSTR("StaticCast_DerivedToBase")),
-	"StaticCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::StaticCast_BaseToDerived, UDRefl::SharedObject>(TSTR("StaticCast_BaseToDerived")),
-	"DynamicCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::DynamicCast_BaseToDerived, UDRefl::SharedObject>(TSTR("DynamicCast_BaseToDerived")),
-	"StaticCast", details::wrap<&UDRefl::ObjectView::StaticCast, UDRefl::SharedObject>(TSTR("StaticCast")),
-	"DynamicCast", details::wrap<&UDRefl::ObjectView::DynamicCast, UDRefl::SharedObject>(TSTR("DynamicCast")),
-
-	"RemoveConst", details::wrap<&UDRefl::ObjectView::RemoveConst, UDRefl::SharedObject>(TSTR("RemoveConst")),
-	"RemoveLValueReference", details::wrap<&UDRefl::ObjectView::RemoveLValueReference, UDRefl::SharedObject>(TSTR("RemoveLValueReference")),
-	"RemoveRValueReference", details::wrap<&UDRefl::ObjectView::RemoveRValueReference, UDRefl::SharedObject>(TSTR("RemoveRValueReference")),
-	"RemoveReference", details::wrap<&UDRefl::ObjectView::RemoveReference, UDRefl::SharedObject>(TSTR("RemoveReference")),
-	"RemoveConstReference", details::wrap<&UDRefl::ObjectView::RemoveConstReference, UDRefl::SharedObject>(TSTR("RemoveConstReference")),
-
-	"AddConst", details::wrap<&UDRefl::ObjectView::AddConst, UDRefl::SharedObject>(TSTR("AddConst")),
-	"AddLValueReference", details::wrap<&UDRefl::ObjectView::AddLValueReference, UDRefl::SharedObject>(TSTR("AddLValueReference")),
-	"AddLValueReferenceWeak", details::wrap<&UDRefl::ObjectView::AddLValueReferenceWeak, UDRefl::SharedObject>(TSTR("AddLValueReferenceWeak")),
-	"AddRValueReference", details::wrap<&UDRefl::ObjectView::AddRValueReference, UDRefl::SharedObject>(TSTR("AddRValueReference")),
-	"AddConstLValueReference", details::wrap<&UDRefl::ObjectView::AddConstLValueReference, UDRefl::SharedObject>(TSTR("AddConstLValueReference")),
-	"AddConstRValueReference", details::wrap<&UDRefl::ObjectView::AddConstRValueReference, UDRefl::SharedObject>(TSTR("AddConstRValueReference")),
-
-	"GetTypeFieldVars", f_ReflMngr_meta<UDRefl::SharedObject, details::ObjectMeta::t_GetTypeFieldVars>,
-	"GetVars", f_ReflMngr_meta<UDRefl::SharedObject, details::ObjectMeta::t_GetVars>,
-
-	"__gc", details::wrap_dtor<UDRefl::SharedObject>(),
-	"__index", &f_Obj_index<UDRefl::SharedObject>,
-	"__newindex",&f_Obj_newindex<UDRefl::SharedObject>,
-	"__tostring", &f_Obj_tostring<UDRefl::SharedObject>,
-	"__concat", &f_Obj_concat<UDRefl::SharedObject>,
-	"__call", &f_meta<UDRefl::SharedObject, details::Meta::t_call, details::CppMetaName::t_operator_call>,
-	"__add", &f_meta<UDRefl::SharedObject, details::Meta::t_add, details::CppMetaName::t_operator_add, 2, details::Invalid, true>,
-	"__band",&f_meta<UDRefl::SharedObject, details::Meta::t_band, details::CppMetaName::t_operator_band, 2, details::Invalid, true>,
-	"__bnot",&f_meta<UDRefl::SharedObject, details::Meta::t_bnot, details::CppMetaName::t_operator_bnot, 1>,
-	"__bor",&f_meta<UDRefl::SharedObject, details::Meta::t_bor, details::CppMetaName::t_operator_bor, 2, details::Invalid, true>,
-	"__div",&f_meta<UDRefl::SharedObject, details::Meta::t_div, details::CppMetaName::t_operator_div, 2>,
-	"__eq",&f_meta<UDRefl::SharedObject, details::Meta::t_eq, details::CppMetaName::t_operator_eq, 2, bool, true>,
-	"__le",&f_meta<UDRefl::SharedObject, details::Meta::t_le, details::CppMetaName::t_operator_le, 2, bool>,
-	"__lt",&f_meta<UDRefl::SharedObject, details::Meta::t_lt, details::CppMetaName::t_operator_lt, 2, bool>,
-	"__mod",&f_meta<UDRefl::SharedObject, details::Meta::t_mod, details::CppMetaName::t_operator_mod, 2>,
-	"__mul",&f_meta<UDRefl::SharedObject, details::Meta::t_mul, details::CppMetaName::t_operator_mul, 2>,
-	"__pow", &f_meta<UDRefl::SharedObject, details::Meta::t_pow, details::CppMetaName::t_operator_bxor, 2>,
-	"__shl",&f_meta<UDRefl::SharedObject, details::Meta::t_shl, details::CppMetaName::t_operator_lshift, 2>,
-	"__shr",&f_meta<UDRefl::SharedObject, details::Meta::t_shr, details::CppMetaName::t_operator_rshift, 2>,
-	"__sub",&f_meta<UDRefl::SharedObject, details::Meta::t_sub, details::CppMetaName::t_operator_sub, 2>,
-	"__unm", &f_meta<UDRefl::SharedObject, details::Meta::t_unm, details::CppMetaName::t_operator_minus, 2>,
-
-	"__bool",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_bool, details::CppMetaName::t_operator_bool, 2, bool>,
-	"__assign",& f_meta<UDRefl::SharedObject, details::CppMeta::t_op_assign, details::CppMetaName::t_operator_assign, 2>,
-	"__deref", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_deref, details::CppMetaName::t_operator_deref, 1>,
-	"__pre_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_inc, details::CppMetaName::t_operator_pre_inc, 1>,
-	"__pre_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_pre_dec, details::CppMetaName::t_operator_pre_dec, 1>,
-	"__post_inc", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_inc, details::CppMetaName::t_operator_post_inc, 1>,
-	"__post_dec", &f_meta<UDRefl::SharedObject, details::CppMeta::t_op_post_dec, details::CppMetaName::t_operator_post_dec, 1>,
-
-	"advance",& f_meta<UDRefl::SharedObject, details::CppMeta::t_advance, details::CppMetaName::t_iterator_advance, 2, void>,
-	"distance",& f_meta<UDRefl::SharedObject, details::CppMeta::t_distance, details::CppMetaName::t_iterator_distance, 2, std::size_t>,
-	"next",& f_meta<UDRefl::SharedObject, details::CppMeta::t_next, details::CppMetaName::t_iterator_next>,
-	"prev",& f_meta<UDRefl::SharedObject, details::CppMeta::t_prev, details::CppMetaName::t_iterator_prev>,
-
-	"tuple_size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_size, details::CppMetaName::t_tuple_size, 1, std::size_t>,
-	"tuple_get",& f_meta<UDRefl::SharedObject, details::CppMeta::t_tuple_get, details::CppMetaName::t_tuple_get, 2>,
-
-	"begin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_begin, details::CppMetaName::t_container_begin, 1>,
-	"cbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cbegin, details::CppMetaName::t_container_cbegin, 1>,
-	"end_",& f_meta<UDRefl::SharedObject, details::CppMeta::t_end, details::CppMetaName::t_container_end, 1>,
-	"cend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_cend, details::CppMetaName::t_container_cend, 1>,
-	"rbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_rbegin, details::CppMetaName::t_container_rbegin, 1>,
-	"crbegin",& f_meta<UDRefl::SharedObject, details::CppMeta::t_crbegin, details::CppMetaName::t_container_crbegin, 1>,
-	"rend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_rend, details::CppMetaName::t_container_rend, 1>,
-	"crend",& f_meta<UDRefl::SharedObject, details::CppMeta::t_crend, details::CppMetaName::t_container_crend, 1>,
-	"at",& f_meta<UDRefl::SharedObject, details::CppMeta::t_at, details::CppMetaName::t_container_at, 2>,
-	"data",& f_meta<UDRefl::SharedObject, details::CppMeta::t_data, details::CppMetaName::t_container_data, 1>,
-	"front",& f_meta<UDRefl::SharedObject, details::CppMeta::t_front, details::CppMetaName::t_container_front, 1>,
-	"back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_back, details::CppMetaName::t_container_back, 1>,
-	"empty",& f_meta<UDRefl::SharedObject, details::CppMeta::t_empty, details::CppMetaName::t_container_empty, 1, bool>,
-	"size",& f_meta<UDRefl::SharedObject, details::CppMeta::t_size, details::CppMetaName::t_container_size, 1, std::size_t>,
-	"resize",& f_meta<UDRefl::SharedObject, details::CppMeta::t_resize, details::CppMetaName::t_container_resize, 2, void>,
-	"capacity",& f_meta<UDRefl::SharedObject, details::CppMeta::t_capacity, details::CppMetaName::t_container_capacity, 1, std::size_t>,
-	"bucket_count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_bucket_count, details::CppMetaName::t_container_bucket_count, 1, std::size_t>,
-	"reserve",& f_meta<UDRefl::SharedObject, details::CppMeta::t_reserve, details::CppMetaName::t_container_reserve, 2, void>,
-	"shrink_to_fit",& f_meta<UDRefl::SharedObject, details::CppMeta::t_shrink_to_fit, details::CppMetaName::t_container_shrink_to_fit, 1, void>,
-	"clear",& f_meta<UDRefl::SharedObject, details::CppMeta::t_clear, details::CppMetaName::t_container_clear, 1, void>,
-	"insert",& f_meta<UDRefl::SharedObject, details::CppMeta::t_insert, details::CppMetaName::t_container_insert>,
-	"erase",& f_meta<UDRefl::SharedObject, details::CppMeta::t_erase, details::CppMetaName::t_container_erase, 2>,
-	"push_front",& f_meta<UDRefl::SharedObject, details::CppMeta::t_push_front, details::CppMetaName::t_container_push_front, 2, void>,
-	"pop_front",& f_meta<UDRefl::SharedObject, details::CppMeta::t_pop_front, details::CppMetaName::t_container_pop_front, 1, void>,
-	"push_back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_push_back, details::CppMetaName::t_container_push_back, 2, void>,
-	"pop_back",& f_meta<UDRefl::SharedObject, details::CppMeta::t_pop_back, details::CppMetaName::t_container_pop_back, 1, void>,
-	"count",& f_meta<UDRefl::SharedObject, details::CppMeta::t_count, details::CppMetaName::t_container_count, 2, std::size_t>,
-	"find",& f_meta<UDRefl::SharedObject, details::CppMeta::t_find, details::CppMetaName::t_container_find, 2>,
-	"lower_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_lower_bound, details::CppMetaName::t_container_lower_bound, 2>,
-	"upper_bound",& f_meta<UDRefl::SharedObject, details::CppMeta::t_upper_bound, details::CppMetaName::t_container_upper_bound, 2>,
-	"equal_range",& f_meta<UDRefl::SharedObject, details::CppMeta::t_equal_range, details::CppMetaName::t_container_equal_range, 2>,
-
-	"range", f_Obj_range<UDRefl::SharedObject>,
-	"tuple_bind", f_Obj_tuple_bind<UDRefl::SharedObject>,
-
-	NULL                 , NULL
-};
+static const struct luaL_Reg* meta_SharedObject = meta_ObjectView;
 
 static void init_CallHandle(lua_State* L_) {
 	LuaStateView L{ L_ };
