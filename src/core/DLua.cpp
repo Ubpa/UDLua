@@ -485,6 +485,32 @@ namespace Ubpa::details {
 	struct Invalid {}; // for f_meta
 
 	template<typename T>
+	T* auto_get_userdata_ptr(LuaStateView L, int idx) {
+		if constexpr (std::is_same_v<T, UDRefl::ObjectView>) {
+			// speedup
+			void* p = lua_touserdata(L, idx);
+			if (p != nullptr) {  /* value is a userdata? */
+				if (lua_getmetatable(L, idx)) {  /* does it have a metatable? */
+					luaL_getmetatable(L, type_name<UDRefl::ObjectView>().Data());  /* get correct metatable */
+					if (!lua_rawequal(L, -1, -2)) { /* not the same? */
+						luaL_getmetatable(L, type_name<UDRefl::SharedObject>().Data());  /* get correct metatable */
+						if (!lua_rawequal(L, -1, -3)) /* not the same? */
+							p = nullptr;  /* value is a userdata with wrong metatable */
+						lua_pop(L, 3);  /* remove all metatables */
+					}
+					else
+						lua_pop(L, 2);  /* remove both metatables */
+					return (T*)p;
+				}
+			}
+			L.argerror(idx, "auto_get_userdata_ptr<UDRefl::ObjectView>: Get ptr failed.");
+			return nullptr;  /* value is not a userdata with a metatable */
+		}
+		else
+			return (T*)L.checkudata(idx, type_name<T>().Data());
+	}
+
+	template<typename T>
 	T auto_get(LuaStateView L, int idx) {
 		if constexpr (std::is_reference_v<T>)
 			static_assert(always_false<T>);
@@ -521,33 +547,8 @@ namespace Ubpa::details {
 				return T{};
 			}
 		}
-		else if constexpr (std::is_same_v<T, UDRefl::ObjectView>) {
-			if (void* obj = L.testudata(idx, type_name<UDRefl::ObjectView>().Data()))
-				return *reinterpret_cast<UDRefl::ObjectView*>(obj);
-			else if (void* obj = L.testudata(idx, type_name<UDRefl::SharedObject>().Data())) {
-				const auto& sobj = *reinterpret_cast<UDRefl::SharedObject*>(obj);
-				return { sobj.GetType(), sobj.GetPtr() };
-			}
-			else {
-				L.error("auto_get : The %dth argument (%s) isn't convertible to %s.",
-					idx, L.typename_(idx), type_name<T>().Data());
-				return {};
-			}
-		}
 		else
-			return *(T*)L.checkudata(idx, type_name<T>().Data());
-	}
-
-	template<typename T>
-	T* auto_get_userdata_ptr(LuaStateView L, int idx) {
-		if constexpr (std::is_same_v<T, UDRefl::ObjectView>) {
-			if (void* ptr = L.testudata(idx, type_name<UDRefl::ObjectView>().Data()))
-				return (UDRefl::ObjectView*)ptr;
-			else
-				return (UDRefl::SharedObject*)L.checkudata(idx, type_name<UDRefl::SharedObject>().Data());
-		}
-		else
-			return (T*)L.checkudata(idx, type_name<T>().Data());
+			return *auto_get_userdata_ptr<T>(L, idx);
 	}
 
 	template<typename Ret>
