@@ -1195,7 +1195,7 @@ static int f_meta(lua_State * L_) {
 }
 
 template<typename T, typename ObjectMeta, int LArgNum = -1, typename Ret = Ubpa::details::Invalid>
-static int f_T_meta(lua_State* L_) {
+static int f_ReflMngr_meta(lua_State* L_) {
 	LuaStateView L{ L_ };
 	const int callargnum = L.gettop();
 	auto obj = details::auto_get<UDRefl::ObjectView>(L, 1);
@@ -1759,8 +1759,28 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"GetType", details::wrap<&UDRefl::ObjectView::GetType, UDRefl::ObjectView>(TSTR("GetType")),
 	"GetPtr", details::wrap<&UDRefl::ObjectView::GetPtr, UDRefl::ObjectView>(TSTR("GetPtr")),
 	"AsNumber", f_Obj_AsNumber<UDRefl::ObjectView>,
-	"GetTypeFieldVars", f_T_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetTypeFieldVars>,
-	"GetVars", f_T_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetVars>,
+
+	"StaticCast_DerivedToBase", details::wrap<&UDRefl::ObjectView::StaticCast_DerivedToBase, UDRefl::ObjectView>(TSTR("StaticCast_DerivedToBase")),
+	"StaticCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::StaticCast_BaseToDerived, UDRefl::ObjectView>(TSTR("StaticCast_BaseToDerived")),
+	"DynamicCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::DynamicCast_BaseToDerived, UDRefl::ObjectView>(TSTR("DynamicCast_BaseToDerived")),
+	"StaticCast", details::wrap<&UDRefl::ObjectView::StaticCast, UDRefl::ObjectView>(TSTR("StaticCast")),
+	"DynamicCast", details::wrap<&UDRefl::ObjectView::DynamicCast, UDRefl::ObjectView>(TSTR("DynamicCast")),
+
+	"RemoveConst", details::wrap<&UDRefl::ObjectView::RemoveConst, UDRefl::ObjectView>(TSTR("RemoveConst")),
+	"RemoveLValueReference", details::wrap<&UDRefl::ObjectView::RemoveLValueReference, UDRefl::ObjectView>(TSTR("RemoveLValueReference")),
+	"RemoveRValueReference", details::wrap<&UDRefl::ObjectView::RemoveRValueReference, UDRefl::ObjectView>(TSTR("RemoveRValueReference")),
+	"RemoveReference", details::wrap<&UDRefl::ObjectView::RemoveReference, UDRefl::ObjectView>(TSTR("RemoveReference")),
+	"RemoveConstReference", details::wrap<&UDRefl::ObjectView::RemoveConstReference, UDRefl::ObjectView>(TSTR("RemoveConstReference")),
+
+	"AddConst", details::wrap<&UDRefl::ObjectView::AddConst, UDRefl::ObjectView>(TSTR("AddConst")),
+	"AddLValueReference", details::wrap<&UDRefl::ObjectView::AddLValueReference, UDRefl::ObjectView>(TSTR("AddLValueReference")),
+	"AddLValueReferenceWeak", details::wrap<&UDRefl::ObjectView::AddLValueReferenceWeak, UDRefl::ObjectView>(TSTR("AddLValueReferenceWeak")),
+	"AddRValueReference", details::wrap<&UDRefl::ObjectView::AddRValueReference, UDRefl::ObjectView>(TSTR("AddRValueReference")),
+	"AddConstLValueReference", details::wrap<&UDRefl::ObjectView::AddConstLValueReference, UDRefl::ObjectView>(TSTR("AddConstLValueReference")),
+	"AddConstRValueReference", details::wrap<&UDRefl::ObjectView::AddConstRValueReference, UDRefl::ObjectView>(TSTR("AddConstRValueReference")),
+
+	"GetTypeFieldVars", f_ReflMngr_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetTypeFieldVars>,
+	"GetVars", f_ReflMngr_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetVars>,
 
 	"__index", &f_Obj_index<UDRefl::ObjectView>,
 	"__newindex",& f_Obj_newindex<UDRefl::ObjectView>,
@@ -1847,8 +1867,28 @@ static const struct luaL_Reg meta_SharedObject[] = {
 	"GetType", details::wrap<&UDRefl::SharedObject::GetType, UDRefl::SharedObject>(TSTR("GetType")),
 	"GetPtr", details::wrap<&UDRefl::SharedObject::GetPtr, UDRefl::SharedObject>(TSTR("GetPtr")),
 	"AsNumber", f_Obj_AsNumber<UDRefl::SharedObject>,
-	"GetTypeFieldVars", f_T_meta<UDRefl::SharedObject, details::ObjectMeta::t_GetTypeFieldVars>,
-	"GetVars", f_T_meta<UDRefl::SharedObject, details::ObjectMeta::t_GetVars>,
+
+	"StaticCast_DerivedToBase", details::wrap<&UDRefl::ObjectView::StaticCast_DerivedToBase, UDRefl::SharedObject>(TSTR("StaticCast_DerivedToBase")),
+	"StaticCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::StaticCast_BaseToDerived, UDRefl::SharedObject>(TSTR("StaticCast_BaseToDerived")),
+	"DynamicCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::DynamicCast_BaseToDerived, UDRefl::SharedObject>(TSTR("DynamicCast_BaseToDerived")),
+	"StaticCast", details::wrap<&UDRefl::ObjectView::StaticCast, UDRefl::SharedObject>(TSTR("StaticCast")),
+	"DynamicCast", details::wrap<&UDRefl::ObjectView::DynamicCast, UDRefl::SharedObject>(TSTR("DynamicCast")),
+
+	"RemoveConst", details::wrap<&UDRefl::ObjectView::RemoveConst, UDRefl::SharedObject>(TSTR("RemoveConst")),
+	"RemoveLValueReference", details::wrap<&UDRefl::ObjectView::RemoveLValueReference, UDRefl::SharedObject>(TSTR("RemoveLValueReference")),
+	"RemoveRValueReference", details::wrap<&UDRefl::ObjectView::RemoveRValueReference, UDRefl::SharedObject>(TSTR("RemoveRValueReference")),
+	"RemoveReference", details::wrap<&UDRefl::ObjectView::RemoveReference, UDRefl::SharedObject>(TSTR("RemoveReference")),
+	"RemoveConstReference", details::wrap<&UDRefl::ObjectView::RemoveConstReference, UDRefl::SharedObject>(TSTR("RemoveConstReference")),
+
+	"AddConst", details::wrap<&UDRefl::ObjectView::AddConst, UDRefl::SharedObject>(TSTR("AddConst")),
+	"AddLValueReference", details::wrap<&UDRefl::ObjectView::AddLValueReference, UDRefl::SharedObject>(TSTR("AddLValueReference")),
+	"AddLValueReferenceWeak", details::wrap<&UDRefl::ObjectView::AddLValueReferenceWeak, UDRefl::SharedObject>(TSTR("AddLValueReferenceWeak")),
+	"AddRValueReference", details::wrap<&UDRefl::ObjectView::AddRValueReference, UDRefl::SharedObject>(TSTR("AddRValueReference")),
+	"AddConstLValueReference", details::wrap<&UDRefl::ObjectView::AddConstLValueReference, UDRefl::SharedObject>(TSTR("AddConstLValueReference")),
+	"AddConstRValueReference", details::wrap<&UDRefl::ObjectView::AddConstRValueReference, UDRefl::SharedObject>(TSTR("AddConstRValueReference")),
+
+	"GetTypeFieldVars", f_ReflMngr_meta<UDRefl::SharedObject, details::ObjectMeta::t_GetTypeFieldVars>,
+	"GetVars", f_ReflMngr_meta<UDRefl::SharedObject, details::ObjectMeta::t_GetVars>,
 
 	"__gc", details::wrap_dtor<UDRefl::SharedObject>(),
 	"__index", &f_Obj_index<UDRefl::SharedObject>,
