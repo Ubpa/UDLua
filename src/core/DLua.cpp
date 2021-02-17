@@ -1458,7 +1458,7 @@ static int f_Obj_index(lua_State* L_) {
 		L.getmetatable(type_name<UDRefl::ObjectView>().Data());
 		L.setmetatable(-2);
 	}
-	else if (ptr.ContainsMethod(key)) {
+	else if (UDRefl::Mngr->ContainsMethod(ptr.GetType(), key)) {
 		auto* buffer = L.newuserdata(sizeof(details::CallHandle));
 		new(buffer)details::CallHandle{ ptr.GetType(), key };
 		L.getmetatable(type_name<details::CallHandle>().Data());

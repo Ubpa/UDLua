@@ -1,5 +1,5 @@
 local vec = require("vec")
-local paramlist = SharedObject.new(Type.new("std::vector<{Ubpa::Type},{std::allocator<{Ubpa::Type}>}>"))
+local paramlist = SharedObject.new(Type.new("std::vector<{Ubpa::Type}>"))
 paramlist:push_back(Type.new("float32"))
 local minfo_vec_offset = SharedObject.new(Type.new("Ubpa::UDRefl::MethodInfo"))
 minfo_vec_offset.methodptr = SharedObject.new_MethodPtr(
