@@ -11,7 +11,7 @@ Ubpa_InitProject()
 set(Ubpa_UDRefl_Build_ext_Bootstrap true)
 
 Ubpa_AddDep(ULuaW  0.1.1)
-Ubpa_AddDep(UDRefl 0.8.2)
+Ubpa_AddDep(UDRefl 0.8.3)
 
 Ubpa_AddSubDirsRec(src)
 

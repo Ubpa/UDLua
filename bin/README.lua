@@ -2,12 +2,12 @@
 local vec = require("vec")
 
 -- Iterate over members
-for field_iter in ObjectView.ReflMngr:GetFields(vec):range() do
-    print(field_iter:__deref().name:GetView())
+for field_iter in ObjectView.ReflMngr:GetFields(vec):__range() do
+    print(field_iter:__indirection().name:GetView())
 end
 
-for method_iter in ObjectView.ReflMngr:GetMethods(vec):range() do
-    print(method_iter:__deref().name:GetView())
+for method_iter in ObjectView.ReflMngr:GetMethods(vec):__range() do
+    print(method_iter:__indirection().name:GetView())
 end
 
 -- Constructing types
@@ -23,8 +23,8 @@ print("x: " .. v.x)
 print("norm2: " .. v:norm2())
 
 -- Iterate over variables
-for iter in v:GetTypeFieldVars():range() do
-    local type, field, var = iter:__deref():tuple_bind()
+for iter in v:GetTypeFieldVars():__range() do
+    local type, field, var = iter:__indirection():__tuple_bind()
     print(field.name:GetView() .. ": ".. var)
 end
 
