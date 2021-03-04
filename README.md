@@ -33,9 +33,9 @@ struct vec {
 };
 ```
 
-## Manual registration
+## Manual registration on Lua
 
-> do it on C++ [->](https://github.com/ubpa/udrefl#manual-registration) 
+> if you want to do it on C++, check out this link [->](https://github.com/ubpa/udrefl#manual-registration).
 
 ```lua
 local vec = UDRefl.RegisterType({
