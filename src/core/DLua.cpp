@@ -1388,6 +1388,61 @@ static int f_SharedObject_new(lua_State* L_) {
 	return 1;
 }
 
+static int f_UDRefl_RegisterType(lua_State* L_) {
+	LuaStateView L{ L_ };
+	if (L.gettop() != 1)
+		return L.error("UDRefl::RegisterType : The number of arguments must be 1");
+	L.checktype(1, LUA_TTABLE);
+	Type type;
+	std::vector<Type> bases;
+	std::vector<Name> field_names;
+	std::vector<Type> field_types;
+	{ // name
+		L.getfield(1, "type");
+		type = details::auto_get<Type>(L, -1);
+	}
+	do{ // bases
+		auto type = L.getfield(1, "bases");
+		if (type == LUA_TNIL)
+			break;
+
+		if (type != LUA_TTABLE)
+			return L.error("UDRefl::RegisterType : table's bases must be a table");
+
+		lua_Integer len = L.lenL(-1);
+		for (lua_Integer i = 1; i <= len; i++) {
+			L.geti(-1, i);
+			bases.push_back(details::auto_get<Type>(L, -1));
+			L.pop(1);
+		}
+		// L.pop(1); // pop bases
+	} while (false);
+	do { // fields
+		auto type = L.getfield(1, "fields");
+		if (type == LUA_TNIL)
+			break;
+
+		if (type != LUA_TTABLE)
+			return L.error("UDRefl::RegisterType : table's fields must be a table");
+
+		lua_Integer len = L.lenL(-1);
+		for (lua_Integer i = 1; i <= len; i++) {
+			if (L.geti(-1, i) != LUA_TTABLE)
+				return L.error("UDRefl::RegisterType : element of table's bases must be a string");
+			L.getfield(-1, "type");
+			field_types.push_back(details::auto_get<Type>(L, -1));
+			L.getfield(-2, "name");
+			field_names.push_back(details::auto_get<Name>(L, -1));
+			L.pop(3); // table, type, name
+		}
+	} while (false);
+	Type rst = UDRefl::Mngr->RegisterType(type, bases, field_types, field_names);
+	if(!rst)
+		return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::RegisterType failed.");
+	details::push(L, rst);
+	return 1;
+}
+
 static const struct luaL_Reg lib_Name[] = {
 	"new", f_T_new<Name>,
 	NULL , NULL
@@ -1486,6 +1541,11 @@ static const struct luaL_Reg lib_SharedObject[] = {
 	NULL, NULL
 };
 
+static const struct luaL_Reg lib_UDRefl[] = {
+	"RegisterType", f_UDRefl_RegisterType,
+	NULL, NULL
+};
+
 static const struct luaL_Reg* meta_SharedObject = meta_ObjectView;
 
 static void init_CallHandle(lua_State* L_) {
@@ -1547,11 +1607,18 @@ static int luaopen_SharedObject(lua_State* L_) {
 	return 1;
 }
 
+static int luaopen_UDRefl(lua_State* L_) {
+	LuaStateView L{ L_ };
+	L.newlib(lib_UDRefl);
+	return 1;
+}
+
 static const luaL_Reg UDRefl_libs[] = {
 	{"Name", luaopen_Name},
 	{"Type", luaopen_Type},
 	{"ObjectView", luaopen_ObjectView},
 	{"SharedObject", luaopen_SharedObject},
+	{"UDRefl", luaopen_UDRefl},
 	{NULL, NULL}
 };
 
