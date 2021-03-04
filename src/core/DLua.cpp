@@ -364,6 +364,128 @@ namespace Ubpa::details {
 		return 0;
 	}
 
+	UDRefl::MethodPtr::Func LuaFuncToMethodPtrFunc(Type object_type, Type result_type, LuaRef func_ref) {
+		return
+			[
+				object_type = UDRefl::Mngr->tregistry.RegisterAddLValueReference(object_type),
+				result_type,
+				fref = std::make_shared<LuaRef>(std::move(func_ref))
+			] (void* obj, void* result_buffer, UDRefl::ArgsView args) mutable
+			{
+				auto L = fref->GetView();
+				int top = L.gettop();
+				fref->Get();
+				const int n = static_cast<int>(args.GetParamList().size());
+				int callargnum;
+				if (object_type.Valid()) {
+					callargnum = n + 1;
+					L.checkstack(callargnum);
+					push(L, UDRefl::ObjectView{ object_type, obj });
+				}
+				else {
+					callargnum = n;
+					L.checkstack(callargnum);
+				}
+
+				for (std::size_t i = 0; i < n; i++)
+					push(L, args.At(i));
+				int error = L.pcall(callargnum, LUA_MULTRET, 0);
+				int result_construct_argnum = L.gettop() - top;
+				details::LuaStackPopGuard popguard{ L, result_construct_argnum };
+				if (error) {
+					std::stringstream ss;
+					ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
+					std::string str = ss.str();
+					std::exception except{ str.data() };
+					L.pop(1);
+					throw except;
+				}
+
+
+				if (!result_buffer || result_type.IsVoid())
+					return;
+
+				if (result_type.IsReference()) {
+					if (result_construct_argnum != 1) {
+						std::stringstream ss;
+						ss
+							<< type_name<UDRefl::SharedObject>().View()
+							<< "::new_MethodPtr::lambda: The result type is reference, so the number ("
+							<< result_construct_argnum
+							<< ") of return values must be 1"
+							;
+						std::string str = ss.str();
+						std::exception except{ str.data() };
+						throw except;
+					}
+					UDRefl::ObjectView return_obj;
+					if (void* obj = L.testudata(-1, type_name<UDRefl::ObjectView>().Data()))
+						return_obj = *reinterpret_cast<UDRefl::ObjectView*>(obj);
+					else if (void* obj = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
+						auto* sobj = reinterpret_cast<UDRefl::SharedObject*>(obj);
+						return_obj = { sobj->GetType(), sobj->GetPtr() };
+					}
+					else {
+						std::stringstream ss;
+						ss
+							<< type_name<UDRefl::SharedObject>().View()
+							<< "::new_MethodPtr::lambda: The result type is reference, so the return type must be a ObjectView/SharedObject"
+							;
+						std::string str = ss.str();
+						std::exception except{ str.data() };
+						throw except;
+					}
+
+					if (!UDRefl::is_ref_compatible(result_type, result_type)) {
+						std::stringstream ss;
+						ss
+							<< type_name<UDRefl::SharedObject>().View()
+							<< "::new_MethodPtr::lambda: The result type is reference, but result type ("
+							<< result_type.GetName()
+							<< ") is not compatible with return type ("
+							<< return_obj.GetType().GetName()
+							<< ")"
+							;
+						std::string str = ss.str();
+						std::exception except{ str.data() };
+						throw except;
+					}
+
+					UDRefl::buffer_as<void*>(result_buffer) = return_obj.GetPtr();
+					return;
+				}
+
+				ArgStack argstack;
+				{ // fill argstack
+					int error = details::FillArgStack(L, argstack, top + 1, result_construct_argnum);
+					if (error) {
+						std::stringstream ss;
+						ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
+						std::string str = ss.str();
+						std::exception except{ str.data() };
+						L.pop(1);
+						throw except;
+					}
+				}
+
+				{ // construct result
+					bool success = UDRefl::Mngr->Construct(
+						UDRefl::ObjectView{ result_type, result_buffer },
+						std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(result_construct_argnum)},
+						static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+					);
+					if (!success) {
+						std::stringstream ss;
+						ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda: Construct fail.";
+						std::string str = ss.str();
+						std::exception except{ str.data() };
+						L.pop(1);
+						throw except;
+					}
+				}
+			};
+	}
+
 	int f_SharedObject_new_MethodPtr(lua_State* L_) {
 		LuaStateView L{ L_ };
 
@@ -470,124 +592,11 @@ namespace Ubpa::details {
 		methodptr_obj = {
 			Type_of<UDRefl::MethodPtr>,
 			std::make_shared<UDRefl::MethodPtr>(
-				[
-					object_type = UDRefl::Mngr->tregistry.RegisterAddLValueReference(object_type),
+				LuaFuncToMethodPtrFunc(
+					UDRefl::Mngr->tregistry.RegisterAddLValueReference(object_type),
 					result_type,
-					fref = std::make_shared<LuaRef>(std::move(func_ref))
-				] (void* obj, void* result_buffer, UDRefl::ArgsView args) mutable
-				{
-					auto L = fref->GetView();
-					int top = L.gettop();
-					fref->Get();
-					const int n = static_cast<int>(args.GetParamList().size());
-					int callargnum;
-					if (object_type.Valid()) {
-						callargnum = n + 1;
-						L.checkstack(callargnum);
-						push(L, UDRefl::ObjectView{ object_type, obj });
-					}
-					else {
-						callargnum = n;
-						L.checkstack(callargnum);
-					}
-
-					for (std::size_t i = 0; i < n; i++)
-						push(L, args.At(i));
-					int error = L.pcall(callargnum, LUA_MULTRET, 0);
-					int result_construct_argnum = L.gettop() - top;
-					details::LuaStackPopGuard popguard{ L, result_construct_argnum };
-					if (error) {
-						std::stringstream ss;
-						ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
-						std::string str = ss.str();
-						std::exception except{ str.data() };
-						L.pop(1);
-						throw except;
-					}
-
-
-					if (!result_buffer || result_type.IsVoid())
-						return;
-
-					if (result_type.IsReference()) {
-						if (result_construct_argnum != 1) {
-							std::stringstream ss;
-							ss
-								<< type_name<UDRefl::SharedObject>().View()
-								<< "::new_MethodPtr::lambda: The result type is reference, so the number ("
-								<< result_construct_argnum
-								<< ") of return values must be 1"
-								;
-							std::string str = ss.str();
-							std::exception except{ str.data() };
-							throw except;
-						}
-						UDRefl::ObjectView return_obj;
-						if (void* obj = L.testudata(-1, type_name<UDRefl::ObjectView>().Data()))
-							return_obj = *reinterpret_cast<UDRefl::ObjectView*>(obj);
-						else if (void* obj = L.testudata(-1, type_name<UDRefl::SharedObject>().Data())) {
-							auto* sobj = reinterpret_cast<UDRefl::SharedObject*>(obj);
-							return_obj = { sobj->GetType(), sobj->GetPtr() };
-						}
-						else {
-							std::stringstream ss;
-							ss
-								<< type_name<UDRefl::SharedObject>().View()
-								<< "::new_MethodPtr::lambda: The result type is reference, so the return type must be a ObjectView/SharedObject"
-								;
-							std::string str = ss.str();
-							std::exception except{ str.data() };
-							throw except;
-						}
-
-						if(!UDRefl::is_ref_compatible(result_type, result_type)) {
-							std::stringstream ss;
-							ss
-								<< type_name<UDRefl::SharedObject>().View()
-								<< "::new_MethodPtr::lambda: The result type is reference, but result type ("
-								<< result_type.GetName()
-								<< ") is not compatible with return type ("
-								<< return_obj.GetType().GetName()
-								<< ")"
-								;
-							std::string str = ss.str();
-							std::exception except{ str.data() };
-							throw except;
-						}
-
-						UDRefl::buffer_as<void*>(result_buffer) = return_obj.GetPtr();
-						return;
-					}
-
-					ArgStack argstack;
-					{ // fill argstack
-						int error = details::FillArgStack(L, argstack, top + 1, result_construct_argnum);
-						if (error) {
-							std::stringstream ss;
-							ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
-							std::string str = ss.str();
-							std::exception except{ str.data() };
-							L.pop(1);
-							throw except;
-						}
-					}
-
-					{ // construct result
-						bool success = UDRefl::Mngr->Construct(
-							UDRefl::ObjectView{ result_type, result_buffer },
-							std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(result_construct_argnum)},
-							static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
-						);
-						if (!success) {
-							std::stringstream ss;
-							ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda: Construct fail.";
-							std::string str = ss.str();
-							std::exception except{ str.data() };
-							L.pop(1);
-							throw except;
-						}
-					}
-				},
+					std::move(func_ref)
+				),
 				flag,
 				result_type,
 				std::move(list)
@@ -1393,10 +1402,17 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 	if (L.gettop() != 1)
 		return L.error("UDRefl::RegisterType : The number of arguments must be 1");
 	L.checktype(1, LUA_TTABLE);
+
 	Type type;
+
 	std::vector<Type> bases;
+
 	std::vector<Name> field_names;
 	std::vector<Type> field_types;
+
+	std::vector<Name> methodnames;
+	std::vector<UDRefl::MethodPtr> methodptrs;
+
 	{ // name
 		L.getfield(1, "type");
 		type = details::auto_get<Type>(L, -1);
@@ -1426,9 +1442,11 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			return L.error("UDRefl::RegisterType : table's fields must be a table");
 
 		lua_Integer len = L.lenL(-1);
+		field_types.reserve(len);
+		field_names.reserve(len);
 		for (lua_Integer i = 1; i <= len; i++) {
 			if (L.geti(-1, i) != LUA_TTABLE)
-				return L.error("UDRefl::RegisterType : element of table's bases must be a string");
+				return L.error("UDRefl::RegisterType : element of table's fields must be a table");
 			L.getfield(-1, "type");
 			field_types.push_back(details::auto_get<Type>(L, -1));
 			L.getfield(-2, "name");
@@ -1436,9 +1454,93 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			L.pop(3); // table, type, name
 		}
 	} while (false);
+	do { // methods
+		auto ftype = L.getfield(1, "methods");
+		if (ftype == LUA_TNIL)
+			break;
+
+		if (ftype != LUA_TTABLE)
+			return L.error("UDRefl::RegisterType : table's methods must be a table");
+
+		lua_Integer mlen = L.lenL(-1);
+		methodnames.reserve(mlen);
+		methodptrs.reserve(mlen);
+		for (lua_Integer i = 1; i <= mlen; i++) {
+			if (L.geti(-1, i) != LUA_TTABLE)
+				return L.error("UDRefl::RegisterType : element of table's methods must be a table");
+
+			L.getfield(-1, "name");
+			methodnames.push_back(details::auto_get<Name>(L, -1));
+
+			UDRefl::MethodFlag flag;
+			if (L.getfield(-2, "flag") != LUA_TNIL) {
+				auto flagname = details::auto_get<std::string_view>(L, -1);
+				if (flagname == "Variable")
+					flag = UDRefl::MethodFlag::Variable;
+				else if (flagname == "Const")
+					flag = UDRefl::MethodFlag::Const;
+				else if (flagname == "Static")
+					flag = UDRefl::MethodFlag::Static;
+				else
+					return L.error("UDRefl::RegisterType : flag(%s) of table's methods[%I] must be a Variable/Const/Static.", flagname.data(), i);
+			}
+			else
+				flag = UDRefl::MethodFlag::Variable;
+
+			Type result_type;
+			if (L.getfield(-3, "result") != LUA_TNIL)
+				result_type = details::auto_get<Type>(L, -1);
+			else
+				result_type = Type_of<void>;
+
+			if (L.getfield(-4, "body") != LUA_TFUNCTION)
+				return L.error("UDRefl::RegisterType : body of table's methods[%I] must be a function.", i);
+			LuaRef func_ref{ L }; // pop
+
+			UDRefl::ParamList params;
+			if (auto fparamstype = L.getfield(-4, "params"); fparamstype != LUA_TNIL) {
+				if (fparamstype != LUA_TTABLE)
+					return L.error("UDRefl::RegisterType : params of table's methods[%I] must be a table", i);
+				lua_Integer len = L.lenL(-1);
+				params.reserve(len);
+				for (lua_Integer i = 1; i <= len; i++) {
+					L.geti(-1, i);
+					params.push_back(details::auto_get<Type>(L, -1));
+					L.pop(1);
+				}
+			}
+			methodptrs.emplace_back(
+				details::LuaFuncToMethodPtrFunc(
+					UDRefl::Mngr->tregistry.RegisterAddLValueReference(type),
+					result_type,
+					std::move(func_ref)
+				),
+				flag,
+				result_type,
+				std::move(params));
+			L.pop(5);
+		}
+	} while (false);
 	Type rst = UDRefl::Mngr->RegisterType(type, bases, field_types, field_names);
 	if(!rst)
 		return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::RegisterType failed.");
+	bool contains_ctor = false;
+	bool contains_dtor = false;
+	for (std::size_t i = 0; i < methodnames.size(); i++) {
+		Name mrst = UDRefl::Mngr->AddMethod(type, methodnames[i], UDRefl::MethodInfo{ std::move(methodptrs[i]) });
+		if (!mrst) {
+			UDRefl::Mngr->typeinfos.erase(rst);
+			return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::AddMethod for %s failed.", methodnames[i].GetView().data());
+		}
+		if (methodnames[i] == UDRefl::NameIDRegistry::Meta::ctor)
+			contains_ctor = true;
+		else if (methodnames[i] == UDRefl::NameIDRegistry::Meta::dtor)
+			contains_dtor = true;
+	}
+	if (!contains_ctor)
+		UDRefl::Mngr->AddDefaultConstructor(type);
+	if (!contains_dtor)
+		UDRefl::Mngr->AddDestructor(type);
 	details::push(L, rst);
 	return 1;
 }

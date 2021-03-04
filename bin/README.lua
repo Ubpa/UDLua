@@ -1,5 +1,20 @@
 -- Manual registration
-local vec = require("vec")
+local vec = UDRefl.RegisterType({
+    type = "vec",
+    fields = {
+        { type = "float32", name = "x" },
+        { type = "float32", name = "y" },
+    },
+    methods = {
+        {
+            name = "norm2",
+            result = "float32",
+            body = function (p)
+                return p.x * p.x + p.y * p.y
+            end
+        }
+    }
+})
 
 -- Iterate over members
 for field_iter in ObjectView.ReflMngr:GetFields(vec):__range() do

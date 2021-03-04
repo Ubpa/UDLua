@@ -35,19 +35,36 @@ struct vec {
 
 ## Manual registration
 
-- do it on C++ [->](https://github.com/ubpa/udrefl#manual-registration) 
+> do it on C++ [->](https://github.com/ubpa/udrefl#manual-registration) 
 
-- do it on lua: `vec = require("vec")` ([vec.lua](bin/vec.lua))
+```lua
+local vec = UDRefl.RegisterType({
+  type = "vec",
+  fields = {
+    { type = "float32", name = "x" },
+    { type = "float32", name = "y" },
+  },
+  methods = {
+    {
+      name = "norm2",
+      result = "float32",
+      body = function (p)
+        return p.x * p.x + p.y * p.y
+      end
+    }
+  }
+})
+```
 
 ### Iterate over members
 
 ```lua
-for field_iter in ObjectView.ReflMngr:GetFields(vec):range() do
-  print(field_iter:__deref().name:GetView())
+for field_iter in ObjectView.ReflMngr:GetFields(vec):__range() do
+  print(field_iter:__indirection().name:GetView())
 end
 
-for method_iter in ObjectView.ReflMngr:GetMethods(vec):range() do
-  print(method_iter:__deref().name:GetView())
+for method_iter in ObjectView.ReflMngr:GetMethods(vec):__range() do
+  print(method_iter:__indirection().name:GetView())
 end
 ```
 
@@ -75,8 +92,8 @@ print("norm2: " .. v:norm2())
 ### Iterate over varables
 
 ```lua
-for iter in v:GetTypeFieldVars():range() do
-  local type, field, var = iter:__deref():tuple_bind()
+for iter in v:GetTypeFieldVars():__range() do
+  local type, field, var = iter:__indirection():__tuple_bind()
   print(field.name:GetView() .. ": ".. var)
 end
 ```

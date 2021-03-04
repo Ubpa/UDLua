@@ -1,18 +1,22 @@
-local vec = require("vec")
-local paramlist = SharedObject.new(Type.new("std::vector<{Ubpa::Type}>"))
-paramlist:push_back(Type.new("float32"))
-local minfo_vec_offset = SharedObject.new(Type.new("Ubpa::UDRefl::MethodInfo"))
-minfo_vec_offset.methodptr = SharedObject.new_MethodPtr(
-    vec,
-    function (v, offset)
-        v.x = v.x + offset
-        v.y = v.y + offset
-        return v
-    end,
-    Type.new("&{vec}"),
-    paramlist
-)
-ObjectView.ReflMngr:AddMethod(vec, Name.new("offset"), minfo_vec_offset)
+local vec = UDRefl.RegisterType({
+    type = "vec",
+    fields = {
+        { type = "float32", name = "x" },
+        { type = "float32", name = "y" },
+    },
+    methods = {
+        {
+            name = "offset",
+            result = "&{vec}",
+            params = { "float32" },
+            body = function (v, offset)
+                v.x = v.x + offset
+                v.y = v.y + offset
+                return v
+            end
+        }
+    }
+})
 
 local v = SharedObject.new(vec)
 v.x = 1
