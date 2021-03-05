@@ -317,6 +317,7 @@ namespace Ubpa::details {
 				break;
 			}
 			case LUA_TUSERDATA:
+				// TODO: speed up
 				if (void* udata = L.testudata(arg, type_name<UDRefl::ObjectView>().Data())) {
 					UDRefl::ObjectView arg = *static_cast<UDRefl::ObjectView*>(udata);
 					auto ref_arg = arg.AddLValueReferenceWeak();
@@ -734,16 +735,24 @@ static int f_meta(lua_State * L_) {
 		method_name = functor.method_name;
 		if (L_argnum >= 2) {
 			if (void* udata = L.testudata(2, type_name<UDRefl::ObjectView>().Data())) {
-				UDRefl::ObjectView obj = *static_cast<UDRefl::ObjectView*>(udata);
-				if (obj.GetType() == functor.type) {
-					ptr = obj;
+				UDRefl::ObjectView* obj = static_cast<UDRefl::ObjectView*>(udata);
+				if (obj->GetType() == functor.type) {
+					ptr = *obj;
+					--argnum;
+				}
+				else if (functor.type == Type_of<UDRefl::ObjectView>) {
+					ptr = { Type_of<UDRefl::ObjectView>, obj };
 					--argnum;
 				}
 			}
 			else if (void* udata = L.testudata(2, type_name<UDRefl::SharedObject>().Data())) {
-				UDRefl::ObjectView obj = *static_cast<UDRefl::SharedObject*>(udata);
-				if (obj.GetType() == functor.type) {
-					ptr = obj;
+				UDRefl::ObjectView* obj = static_cast<UDRefl::SharedObject*>(udata);
+				if (obj->GetType() == functor.type) {
+					ptr = *obj;
+					--argnum;
+				}
+				else if (functor.type == Type_of<UDRefl::ObjectView>) {
+					ptr = { Type_of<UDRefl::ObjectView>, static_cast<UDRefl::ObjectView*>(obj) };
 					--argnum;
 				}
 			}
@@ -816,7 +825,7 @@ static int f_meta(lua_State * L_) {
 					method_name,
 					std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
 					static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
-					);
+				);
 
 				details::push<Ret>(L, std::move(rst));
 			}
@@ -852,12 +861,17 @@ static int f_meta(lua_State * L_) {
 				static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 			);
 
-			rst = { UDRefl::ObjectView{rst.GetType(), rst.GetPtr()},[rsrc_ref = LuaRef{L}, buffer = rst.GetBuffer()](void*){} };
-
 			if (rst.GetType().Is<void>())
 				return 0;
 
-			details::push(L, std::move(rst));
+			if (rst.IsObjectView())
+				details::push<UDRefl::ObjectView>(L, rst);
+			else {
+				rst = { UDRefl::ObjectView{rst.GetType(), rst.GetPtr()},[rsrc_ref = LuaRef{L}, buffer = rst.GetBuffer()](void*){} };
+				details::push(L, std::move(rst));
+			}
+
+			return 1;
 		}
 		catch (const std::exception& e) {
 			return L.error("%s::%s : Invoke exception.\n%s",
@@ -872,8 +886,6 @@ static int f_meta(lua_State * L_) {
 				MetaName::Data()
 			);
 		}
-
-		return 1;
 	}
 }
 
@@ -991,69 +1003,85 @@ static int f_ObjectView_new(lua_State* L_) {
 	return 1;
 }
 
-static int f_ObjectView_to_number(lua_State* L_) {
+static int f_ObjectView_unbox(lua_State* L_) {
 	LuaStateView L{ L_ };
 
 	if (L.gettop() != 1)
-		return L.error("%s::to_number : The number of arguments is invalid. The function needs 1 argument (object).", type_name<UDRefl::ObjectView>().Data());
+		return L.error("%s::__unbox : The number of arguments is invalid. The function needs 1 argument (object).", type_name<UDRefl::ObjectView>().Data());
 
 	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
 
 	if (!ptr.GetPtr())
-		return L.error("%s::to_number : The object is nil.", type_name<UDRefl::ObjectView>().Data());
+		return L.error("%s::__unbox : The object is nil.", type_name<UDRefl::ObjectView>().Data());
 
 	ptr = ptr.RemoveConstReference();
 
-	std::string_view tname = ptr.GetType().GetName();
-
-	if (tname == type_name<bool>().View())
+	switch (ptr.GetType().GetID().GetValue())
+	{
+	case TypeID_of<bool>.GetValue():
 		L.pushboolean(ptr.As<bool>());
-	else if (type_name_is_integral(tname)) {
-		lua_Integer value;
-		try {
-			UDRefl::Mngr->Construct(
-				UDRefl::ObjectView{ Type_of<lua_Integer>, &value },
-				std::span<const Type>{&ptr.GetType(), 1},
-				(UDRefl::ArgPtrBuffer)&ptr.GetPtr()
-			);
-		}
-		catch (const std::exception& e) {
-			return L.error("%s::to_number : Invoke exception.\n%s",
-				type_name<UDRefl::ObjectView>().Data(),
-				e.what()
-			);
-		}
-		catch (...) {
-			return L.error("%s::%s : Invoke exception.\n", type_name<UDRefl::ObjectView>().Data());
-		}
-		L.pushinteger(value);
-	}
-	else if (type_name_is_floating_point(tname)) {
-		lua_Number value;
-		try {
-			UDRefl::Mngr->Construct(
-				UDRefl::ObjectView{ Type_of<lua_Number>, &value },
-				std::span<const Type>{&ptr.GetType(), 1},
-				(UDRefl::ArgPtrBuffer)&ptr.GetPtr()
-			);
-		}
-		catch (const std::exception& e) {
-			return L.error("%s::to_number : Invoke exception.\n%s",
-				type_name<UDRefl::ObjectView>().Data(),
-				e.what()
-			);
-		}
-		catch (...) {
-			return L.error("%s::%s : Invoke exception.\n", type_name<UDRefl::ObjectView>().Data());
-		}
-		L.pushnumber(value);
-	}
-	else {
-		return L.error("%s::to_number : The type (%s) can't convert to a number.",
+		break;
+	case TypeID_of<std::int8_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int8_t>()));
+		break;
+	case TypeID_of<std::int16_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int16_t>()));
+		break;
+	case TypeID_of<std::int32_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int32_t>()));
+		break;
+	case TypeID_of<std::int64_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int64_t>()));
+		break;
+	case TypeID_of<std::uint8_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint8_t>()));
+		break;
+	case TypeID_of<std::uint16_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint16_t>()));
+		break;
+	case TypeID_of<std::uint32_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint32_t>()));
+		break;
+	case TypeID_of<std::uint64_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint64_t>()));
+		break;
+	case TypeID_of<float>.GetValue():
+		L.pushnumber(static_cast<lua_Number>(ptr.As<float>()));
+		break;
+	case TypeID_of<double>.GetValue():
+		L.pushnumber(static_cast<lua_Number>(ptr.As<double>()));
+		break;
+	case TypeID_of<void*>.GetValue():
+		L.pushlightuserdata(ptr.As<void*>());
+		break;
+	case TypeID_of<std::nullptr_t>.GetValue():
+		L.pushnil();
+		break;
+	case TypeID_of<Type>.GetValue():
+		details::push(L, ptr.As<Type>());
+		break;
+	case TypeID_of<Name>.GetValue():
+		details::push(L, ptr.As<Name>());
+		break;
+	case TypeID_of<const char*>.GetValue():
+		L.pushstring(ptr.As<const char*>());
+		break;
+	case TypeID_of<char*>.GetValue():
+		L.pushstring(ptr.As<char*>());
+		break;
+	case TypeID_of<std::string_view>.GetValue():
+		details::push(L, ptr.As<std::string_view>());
+		break;
+	case TypeID_of<std::string>.GetValue():
+		details::push<std::string_view>(L, ptr.As<std::string>());
+		break;
+	default:
+		return L.error("%s::__unbox : The type (%s) can't unbox.",
 			type_name<UDRefl::ObjectView>().Data(),
-			tname.data());
+			ptr.GetType().GetName().data());
+		break;
 	}
-
+	
 	return 1;
 }
 
@@ -1127,10 +1155,18 @@ static int f_ObjectView_index(lua_State* L_) {
 	
 	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
 
-	if (key.Is("this")) {
-		L.pushvalue(1);
-		return 1;
-	}
+	if (!key)
+		return L.error("%s::__index : key is empty.", type_name<UDRefl::ObjectView>().Data());
+
+	// order
+	// 1. metatable
+	// 2. var
+	// 3. method
+	// 4. ObjectView's method
+	// 5. self
+
+	if (L.getmetatable(1) && L.getfield(-1, key.GetView().data()))
+		; // the field is already on the stack, so do nothing here
 	else if (auto key_obj = ptr.Var(key); key_obj.GetPtr()) {
 		auto* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
 		new(buffer)UDRefl::ObjectView{ key_obj };
@@ -1143,22 +1179,21 @@ static int f_ObjectView_index(lua_State* L_) {
 		L.getmetatable(type_name<details::CallHandle>().Data());
 		L.setmetatable(-2);
 	}
+	else if (UDRefl::Mngr->ContainsMethod(Type_of<UDRefl::ObjectView>, key)) {
+		auto* buffer = L.newuserdata(sizeof(details::CallHandle));
+		new(buffer)details::CallHandle{ Type_of<UDRefl::ObjectView>, key };
+		L.getmetatable(type_name<details::CallHandle>().Data());
+		L.setmetatable(-2);
+	}
+	else if (key.Is("self")) {
+		L.pushvalue(1);
+		return 1;
+	}
 	else {
-		if (!key) {
-			return L.error("%s::__index : %s can't index a non-var and non-method Name.",
-				type_name<UDRefl::ObjectView>().Data(),
-				ptr.GetType().GetName().data());
-		}
-
-		int success = L.getmetatable(-2); // Obj's metatable
-		assert(success);
-		int contain = L.getfield(-1, key.GetView().data());
-		if (!contain) {
-			return L.error("%s::__index : %s not contain %s.",
-				type_name<UDRefl::ObjectView>().Data(),
-				ptr.GetType().GetName().data(),
-				key.GetView().data());
-		}
+		return L.error("%s::__index : %s index %s failed.",
+			type_name<UDRefl::ObjectView>().Data(),
+			ptr.GetType().GetName().data(),
+			key.GetView().data());
 	}
 	return 1;
 }
@@ -1579,31 +1614,6 @@ static const struct luaL_Reg lib_ObjectView[] = {
 };
 
 static const struct luaL_Reg meta_ObjectView[] = {
-	"GetType", details::wrap<&UDRefl::ObjectView::GetType, UDRefl::ObjectView>(TSTR("GetType")),
-	"GetPtr", details::wrap<&UDRefl::ObjectView::GetPtr, UDRefl::ObjectView>(TSTR("GetPtr")),
-
-	"StaticCast_DerivedToBase", details::wrap<&UDRefl::ObjectView::StaticCast_DerivedToBase, UDRefl::ObjectView>(TSTR("StaticCast_DerivedToBase")),
-	"StaticCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::StaticCast_BaseToDerived, UDRefl::ObjectView>(TSTR("StaticCast_BaseToDerived")),
-	"DynamicCast_BaseToDerived", details::wrap<&UDRefl::ObjectView::DynamicCast_BaseToDerived, UDRefl::ObjectView>(TSTR("DynamicCast_BaseToDerived")),
-	"StaticCast", details::wrap<&UDRefl::ObjectView::StaticCast, UDRefl::ObjectView>(TSTR("StaticCast")),
-	"DynamicCast", details::wrap<&UDRefl::ObjectView::DynamicCast, UDRefl::ObjectView>(TSTR("DynamicCast")),
-
-	"RemoveConst", details::wrap<&UDRefl::ObjectView::RemoveConst, UDRefl::ObjectView>(TSTR("RemoveConst")),
-	"RemoveLValueReference", details::wrap<&UDRefl::ObjectView::RemoveLValueReference, UDRefl::ObjectView>(TSTR("RemoveLValueReference")),
-	"RemoveRValueReference", details::wrap<&UDRefl::ObjectView::RemoveRValueReference, UDRefl::ObjectView>(TSTR("RemoveRValueReference")),
-	"RemoveReference", details::wrap<&UDRefl::ObjectView::RemoveReference, UDRefl::ObjectView>(TSTR("RemoveReference")),
-	"RemoveConstReference", details::wrap<&UDRefl::ObjectView::RemoveConstReference, UDRefl::ObjectView>(TSTR("RemoveConstReference")),
-
-	"AddConst", details::wrap<&UDRefl::ObjectView::AddConst, UDRefl::ObjectView>(TSTR("AddConst")),
-	"AddLValueReference", details::wrap<&UDRefl::ObjectView::AddLValueReference, UDRefl::ObjectView>(TSTR("AddLValueReference")),
-	"AddLValueReferenceWeak", details::wrap<&UDRefl::ObjectView::AddLValueReferenceWeak, UDRefl::ObjectView>(TSTR("AddLValueReferenceWeak")),
-	"AddRValueReference", details::wrap<&UDRefl::ObjectView::AddRValueReference, UDRefl::ObjectView>(TSTR("AddRValueReference")),
-	"AddConstLValueReference", details::wrap<&UDRefl::ObjectView::AddConstLValueReference, UDRefl::ObjectView>(TSTR("AddConstLValueReference")),
-	"AddConstRValueReference", details::wrap<&UDRefl::ObjectView::AddConstRValueReference, UDRefl::ObjectView>(TSTR("AddConstRValueReference")),
-
-	"GetTypeFieldVars", f_ReflMngr_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetTypeFieldVars>,
-	"GetVars", f_ReflMngr_meta<UDRefl::ObjectView, details::ObjectMeta::t_GetVars>,
-
 	"__add", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_add, 2, details::Invalid, true>,
 	"__band", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_band, 2, details::Invalid, true>,
 	"__bnot", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_bnot, 1>,
@@ -1630,7 +1640,7 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"__assignment",& f_meta<UDRefl::ObjectView, details::Meta::t_operator_assignment, 2>,
 	"__begin",& f_meta<UDRefl::ObjectView, details::Meta::t_container_begin, 1>,
 	"__end",& f_meta<UDRefl::ObjectView, details::Meta::t_container_end, 1>,
-	"__to_number", f_ObjectView_to_number,
+	"__unbox", f_ObjectView_unbox,
 	"__range", f_ObjectView_range,
 	"__tuple_bind", f_ObjectView_tuple_bind,
 
