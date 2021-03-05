@@ -861,6 +861,14 @@ static int f_meta(lua_State * L_) {
 				static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
 			);
 
+			if (!rst.GetType()) {
+				return L.error("%s::%s : Call UDRefl::ObjectView::MInvoke (%s) failed.",
+					type_name<Functor>().Data(),
+					MetaName::Data(),
+					method_name.GetView().data()
+				);
+			}
+
 			if (rst.GetType().Is<void>())
 				return 0;
 
@@ -990,15 +998,12 @@ static int f_ObjectView_new(lua_State* L_) {
 			details::push(L, UDRefl::ObjectView{ *id });
 			break;
 		}
-		case LUA_TNIL:
-			details::push(L, UDRefl::ObjectView{});
-			break;
 		default:
-			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a Type/nil.", type_name<UDRefl::ObjectView>().Data());
+			return L.error("%s::new : The type of argument#1 is invalid. The function needs 0 argument / a Type.", type_name<UDRefl::ObjectView>().Data());
 		}
 	}
 	else
-		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a Type/nil.", type_name<UDRefl::ObjectView>().Data());
+		return L.error("%s::new : The number of arguments is invalid. The function needs 0 argument / a Type.", type_name<UDRefl::ObjectView>().Data());
 
 	return 1;
 }
@@ -1152,8 +1157,6 @@ static int f_ObjectView_index(lua_State* L_) {
 	default:
 		return f_meta<UDRefl::ObjectView, details::Meta::t_operator_subscript, 2>(L_);
 	}
-	
-	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
 
 	if (!key)
 		return L.error("%s::__index : key is empty.", type_name<UDRefl::ObjectView>().Data());
@@ -1166,8 +1169,13 @@ static int f_ObjectView_index(lua_State* L_) {
 	// 5. self
 
 	if (L.getmetatable(1) && L.getfield(-1, key.GetView().data()))
-		; // the field is already on the stack, so do nothing here
-	else if (auto key_obj = ptr.Var(key); key_obj.GetPtr()) {
+		return 1; // the field is already on the stack, so return directly
+	
+	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
+	if (!ptr.GetType().Valid())
+		return L.error("%s::__index : the type of object is invalid.", type_name<UDRefl::ObjectView>().Data());
+
+	if (auto key_obj = ptr.Var(key); key_obj.GetPtr()) {
 		auto* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
 		new(buffer)UDRefl::ObjectView{ key_obj };
 		L.getmetatable(type_name<UDRefl::ObjectView>().Data());
@@ -1432,6 +1440,57 @@ static int f_SharedObject_new(lua_State* L_) {
 	return 1;
 }
 
+static int f_SharedObject_box(lua_State* L_) {
+	LuaStateView L{ L_ };
+	const int L_argnum = L.gettop();
+	if (L_argnum != 1)
+		return L.error("%s::box : The number of arguments must be 1.", type_name<UDRefl::SharedObject>().Data());
+
+	Type type;
+	int argtype = L.type(1);
+	switch (argtype)
+	{
+	case LUA_TNIL:
+		details::push(L, UDRefl::Mngr->MakeShared(Type_of<std::nullptr_t>));
+		break;
+	case LUA_TBOOLEAN:
+		details::push(L, UDRefl::Mngr->MakeShared(Type_of<bool>, details::auto_get<bool>(L, 1)));
+		break;
+	case LUA_TLIGHTUSERDATA:
+		details::push(L, UDRefl::Mngr->MakeShared(Type_of<void*>, details::auto_get<void*>(L, 1)));
+		break;
+	case LUA_TNUMBER:
+		if (L.isinteger(1))
+			details::push(L, UDRefl::Mngr->MakeShared(Type_of<lua_Integer>, details::auto_get<lua_Integer>(L, 1)));
+		else {
+			assert(L.isnumber(1));
+			details::push(L, UDRefl::Mngr->MakeShared(Type_of<lua_Number>, details::auto_get<lua_Number>(L, 1)));
+		}
+		break;
+	case LUA_TSTRING:
+		details::push(L, UDRefl::Mngr->MakeShared(Type_of<std::string>, details::auto_get<std::string_view>(L, 1)));
+		break;
+	case LUA_TUSERDATA:
+		if (L.testudata(1, type_name<Type>().Data()))
+			details::push(L, UDRefl::Mngr->MakeShared(Type_of<Type>, details::auto_get<Type>(L, 1)));
+		else if (L.testudata(1, type_name<Name>().Data()))
+			details::push(L, UDRefl::Mngr->MakeShared(Type_of<Name>, details::auto_get<Name>(L, 1)));
+		else {
+			return L.error("%s::box : In userdata, only Type & Name can be boxed.",
+				type_name<UDRefl::SharedObject>().Data()
+			);
+		}
+		break;
+	default:
+		return L.error("%s::box : The type (%s) of the argument is not support.",
+			type_name<UDRefl::SharedObject>().Data(),
+			L.typename_(1)
+		);
+	}
+
+	return 1;
+}
+
 static int f_UDRefl_RegisterType(lua_State* L_) {
 	LuaStateView L{ L_ };
 	if (L.gettop() != 1)
@@ -1608,6 +1667,7 @@ static const struct luaL_Reg meta_Type[] = {
 
 static const struct luaL_Reg lib_ObjectView[] = {
 	"new", f_ObjectView_new,
+	"unbox", f_ObjectView_unbox,
 	"range", f_ObjectView_range,
 	"tuple_bind", f_ObjectView_tuple_bind,
 	NULL, NULL
@@ -1634,13 +1694,13 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"__shl", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_shl, 2>,
 	"__shr", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_shr, 2>,
 	"__sub", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_sub, 2>,
+	"__unbox", f_ObjectView_unbox,
 	"__tostring", f_ObjectView_tostring,
 	"__unm", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_sub, 1>,
 
 	"__assignment",& f_meta<UDRefl::ObjectView, details::Meta::t_operator_assignment, 2>,
 	"__begin",& f_meta<UDRefl::ObjectView, details::Meta::t_container_begin, 1>,
 	"__end",& f_meta<UDRefl::ObjectView, details::Meta::t_container_end, 1>,
-	"__unbox", f_ObjectView_unbox,
 	"__range", f_ObjectView_range,
 	"__tuple_bind", f_ObjectView_tuple_bind,
 
@@ -1649,6 +1709,7 @@ static const struct luaL_Reg meta_ObjectView[] = {
 
 static const struct luaL_Reg lib_SharedObject[] = {
 	"new", f_SharedObject_new,
+	"box", f_SharedObject_box,
 	"new_MethodPtr", details::f_SharedObject_new_MethodPtr,
 	NULL, NULL
 };

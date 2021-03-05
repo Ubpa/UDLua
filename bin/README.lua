@@ -7,10 +7,10 @@ local vec = UDRefl.RegisterType({
     },
     methods = {
         {
-            name = "norm2",
+            name = "norm",
             result = "float32",
             body = function (p)
-                return p.x * p.x + p.y * p.y
+                return math.sqrt(ObjectView.unbox(p.x * p.x + p.y * p.y))
             end
         }
     }
@@ -32,10 +32,10 @@ print(v:GetType():GetName()) -- prints "vec"
 -- Set/get variables
 v.x = 3
 v.y = 4
-print("x: " .. v.x)
+print("x: " .. v.x) -- prints "3"
 
 -- Invoke Methods
-print("norm2: " .. v:norm2())
+print("norm: " .. v:norm()) -- prints "5"
 
 -- Iterate over variables
 for iter in v:GetTypeFieldVars():__range() do
@@ -44,5 +44,6 @@ for iter in v:GetTypeFieldVars():__range() do
 end
 
 -- clear
+v = nil
 collectgarbage()
 ObjectView.ReflMngr.typeinfos:erase(vec)

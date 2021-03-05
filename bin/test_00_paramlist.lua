@@ -24,5 +24,7 @@ v.y = 2
 v:offset(3)
 print(v.x .. ", " .. v.y)
 
+-- clear
+v = nil
 collectgarbage()
 ObjectView.ReflMngr.typeinfos:erase(vec)

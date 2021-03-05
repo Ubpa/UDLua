@@ -1,6 +1,6 @@
 set(c_options_private "")
 if(MSVC)
-  list(APPEND c_options_private "/W26495")
+  list(APPEND c_options_private "/wd26495")
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   #
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -16,4 +16,6 @@ Ubpa_AddTarget(
   LIB
     Ubpa::ULuaW_core
     Ubpa::UDRefl_ext_Bootstrap
+  C_OPTION_PRIVATE
+    ${c_options_private}
 )

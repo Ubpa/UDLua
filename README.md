@@ -29,7 +29,7 @@ Suppose you need to use `struct vec`
 struct vec {
   float x;
   float y;
-  float norm2() const { return x * x + y * y; }
+  float norm() const { return std::sqrt(x * x + y * y); }
 };
 ```
 
@@ -46,10 +46,10 @@ local vec = UDRefl.RegisterType({
   },
   methods = {
     {
-      name = "norm2",
+      name = "norm",
       result = "float32",
       body = function (p)
-        return p.x * p.x + p.y * p.y
+        return math.sqrt(ObjectView.unbox(p.x * p.x + p.y * p.y))
       end
     }
   }
@@ -80,13 +80,13 @@ print(v:GetType():GetName()) -- prints "vec"
 ```lua
 v.x = 3
 v.y = 4
-print("x: " .. v.x)
+print("x: " .. v.x) -- prints "3"
 ```
 
 ### Invoke Methods
 
 ```lua
-print("norm2: " .. v:norm2())
+print("norm: " .. v:norm()) -- prints "5"
 ```
 
 ### Iterate over varables
