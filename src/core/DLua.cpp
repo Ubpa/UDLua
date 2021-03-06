@@ -5,7 +5,7 @@
 #include <UDRefl/UDRefl.h>
 #include <UDRefl_ext/Bootstrap.h>
 
-#include <exception>
+#include <stdexcept>
 
 using namespace Ubpa;
 
@@ -87,7 +87,7 @@ namespace Ubpa::details {
 //		}break;
 //
 //		case LUA_TNUMBER: {
-//			//ÕûÐÎ
+//			//ï¿½ï¿½ï¿½ï¿½
 //			if (lua_isinteger(L, i)) {
 //				printf("LUA_TNUMBER integer : %lld \n", lua_tointeger(L, i));
 //			}
@@ -155,6 +155,17 @@ namespace Ubpa::details {
 
 	struct Invalid {}; // for f_meta
 
+	template<typename T>
+	constexpr lua_CFunction wrap_dtor() {
+		return [](lua_State* L_) -> int {
+			LuaStateView L{ L_ };
+			auto* ptr = (T*)L.checkudata(1, type_name<T>().Data());
+			ptr->~T();
+			// std::cout << "[debug] dtor: " << type_name<T>().View() << std::endl;
+			return 0;
+		};
+	}
+
 	UDRefl::ObjectView* safe_get_Object(LuaStateView L, int idx) {
 		void* p = lua_touserdata(L, idx);
 		if (p != nullptr) {  /* value is a userdata? */
@@ -193,7 +204,7 @@ namespace Ubpa::details {
 			return static_cast<T>(L.checknumber(idx));
 		else if constexpr (std::is_null_pointer_v<T>) {
 			L.checktype(idx, LUA_TNIL);
-			return std::nullptr_t;
+			return nullptr;
 		}
 		else if constexpr (std::is_same_v<std::decay_t<T>, const char*>)
 			return L.checkstring(idx);
@@ -397,7 +408,7 @@ namespace Ubpa::details {
 					std::stringstream ss;
 					ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
 					std::string str = ss.str();
-					std::exception except{ str.data() };
+					std::runtime_error except{ str.data() };
 					L.pop(1);
 					throw except;
 				}
@@ -416,7 +427,7 @@ namespace Ubpa::details {
 							<< ") of return values must be 1"
 							;
 						std::string str = ss.str();
-						std::exception except{ str.data() };
+						std::runtime_error except{ str.data() };
 						throw except;
 					}
 					UDRefl::ObjectView return_obj;
@@ -433,7 +444,7 @@ namespace Ubpa::details {
 							<< "::new_MethodPtr::lambda: The result type is reference, so the return type must be a ObjectView/SharedObject"
 							;
 						std::string str = ss.str();
-						std::exception except{ str.data() };
+						std::runtime_error except{ str.data() };
 						throw except;
 					}
 
@@ -448,7 +459,7 @@ namespace Ubpa::details {
 							<< ")"
 							;
 						std::string str = ss.str();
-						std::exception except{ str.data() };
+						std::runtime_error except{ str.data() };
 						throw except;
 					}
 
@@ -463,7 +474,7 @@ namespace Ubpa::details {
 						std::stringstream ss;
 						ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
 						std::string str = ss.str();
-						std::exception except{ str.data() };
+						std::runtime_error except{ str.data() };
 						L.pop(1);
 						throw except;
 					}
@@ -481,7 +492,7 @@ namespace Ubpa::details {
 						std::stringstream ss;
 						ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda: Construct fail.";
 						std::string str = ss.str();
-						std::exception except{ str.data() };
+						std::runtime_error except{ str.data() };
 						L.pop(1);
 						throw except;
 					}
@@ -613,17 +624,6 @@ namespace Ubpa::details {
 		return 1;
 	}
 
-	template<typename T>
-	constexpr lua_CFunction wrap_dtor() {
-		return [](lua_State* L_) -> int {
-			LuaStateView L{ L_ };
-			auto* ptr = (T*)L.checkudata(1, type_name<T>().Data());
-			ptr->~T();
-			// std::cout << "[debug] dtor: " << type_name<T>().View() << std::endl;
-			return 0;
-		};
-	}
-
 	template<auto funcptr, typename Obj, std::size_t... Ns>
 	void caller(LuaStateView L, Obj* obj, std::index_sequence<Ns...>) {
 		using FuncObj = decltype(funcptr);
@@ -733,7 +733,7 @@ static int f_meta(lua_State * L_) {
 		method_name = { MetaName::View() };
 	}
 	else {
-		ptr = { functor.type };
+		ptr = UDRefl::ObjectView{ functor.type, nullptr };
 		method_name = functor.method_name;
 		if (L_argnum >= 2) {
 			if (void* udata = L.testudata(2, type_name<UDRefl::ObjectView>().Data())) {
@@ -807,7 +807,7 @@ static int f_meta(lua_State * L_) {
 					}
 				);
 			}
-			catch (const std::exception& e) {
+			catch (const std::runtime_error& e) {
 				return L.error("%s::%s : Invoke exception.\n%s",
 					type_name<Functor>().Data(),
 					MetaName::Data(),
@@ -835,7 +835,7 @@ static int f_meta(lua_State * L_) {
 
 				details::push<Ret>(L, std::move(rst));
 			}
-			catch (const std::exception& e) {
+			catch (const std::runtime_error& e) {
 				return L.error("%s::%s : Invoke exception.\n%s",
 					type_name<Functor>().Data(),
 					MetaName::Data(),
@@ -890,7 +890,7 @@ static int f_meta(lua_State * L_) {
 
 			return 1;
 		}
-		catch (const std::exception& e) {
+		catch (const std::runtime_error& e) {
 			return L.error("%s::%s : Invoke exception.\n%s",
 				type_name<Functor>().Data(),
 				MetaName::Data(),
@@ -914,7 +914,7 @@ static int f_ReflMngr_meta(lua_State* L_) {
 	L.rotate(1, -1);
 	L.pop(1);
 	L.pushcfunction(f_meta<UDRefl::ObjectView, ObjectMeta, LArgNum, Ret>);
-	details::push(L, UDRefl::ObjectView{ Type_of<UDRefl::ReflMngr>, UDRefl::Mngr });
+	details::push(L, UDRefl::ObjectView{ UDRefl::MngrView });
 	details::push(L, UDRefl::ObjectView{ Type_of<UDRefl::ObjectView>, &obj });
 	L.rotate(1, 3);
 	int n = L.gettop();
@@ -1120,7 +1120,7 @@ static int f_ObjectView_tostring(lua_State* L_) {
 	try {
 		ss << ptr;
 	}
-	catch (const std::exception& e) {
+	catch (const std::runtime_error& e) {
 		return L.error("%s::__tostring : Exception (<<).\n%s",
 			type_name<UDRefl::ObjectView>().Data(),
 			e.what());
@@ -1304,7 +1304,7 @@ static int f_ObjectView_range_next(lua_State* L_) {
 				type_name<UDRefl::ObjectView>().Data());
 		}
 	}
-	catch (const std::exception& e) {
+	catch (const std::runtime_error& e) {
 		return L.error("%s::tuple_bind : Exception.\n%s",
 			type_name<UDRefl::ObjectView>().Data(),
 			e.what()
@@ -1372,7 +1372,7 @@ static int f_ObjectView_tuple_bind(lua_State* L_) {
 			details::push(L, obj.get(i));
 		return static_cast<int>(n);
 	}
-	catch (const std::exception& e) {
+	catch (const std::runtime_error& e) {
 		return L.error("%s::tuple_bind : Exception.\n%s",
 			type_name<UDRefl::ObjectView>().Data(),
 			e.what()
@@ -1434,7 +1434,7 @@ static int f_SharedObject_new(lua_State* L_) {
 			}
 		);
 	}
-	catch (const std::exception& e) {
+	catch (const std::runtime_error& e) {
 		return L.error("%s::new : Fail.\n%s", type_name<UDRefl::SharedObject>().Data(), e.what());
 	}
 	catch (...) {
