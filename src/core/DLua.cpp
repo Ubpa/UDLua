@@ -368,7 +368,7 @@ namespace Ubpa::details {
 	UDRefl::MethodPtr::Func LuaFuncToMethodPtrFunc(Type object_type, Type result_type, LuaRef func_ref) {
 		return
 			[
-				object_type = UDRefl::Mngr->tregistry.RegisterAddLValueReference(object_type),
+				object_type = UDRefl::Mngr.tregistry.RegisterAddLValueReference(object_type),
 				result_type,
 				fref = std::make_shared<LuaRef>(std::move(func_ref))
 			] (void* obj, void* result_buffer, UDRefl::ArgsView args) mutable
@@ -376,7 +376,7 @@ namespace Ubpa::details {
 				auto L = fref->GetView();
 				int top = L.gettop();
 				fref->Get();
-				const int n = static_cast<int>(args.GetParamList().size());
+				const int n = static_cast<int>(args.Types().size());
 				int callargnum;
 				if (object_type.Valid()) {
 					callargnum = n + 1;
@@ -389,7 +389,7 @@ namespace Ubpa::details {
 				}
 
 				for (std::size_t i = 0; i < n; i++)
-					push(L, args.At(i));
+					push(L, args[i]);
 				int error = L.pcall(callargnum, LUA_MULTRET, 0);
 				int result_construct_argnum = L.gettop() - top;
 				details::LuaStackPopGuard popguard{ L, result_construct_argnum };
@@ -470,10 +470,12 @@ namespace Ubpa::details {
 				}
 
 				{ // construct result
-					bool success = UDRefl::Mngr->Construct(
+					bool success = UDRefl::Mngr.Construct(
 						UDRefl::ObjectView{ result_type, result_buffer },
-						std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(result_construct_argnum)},
-						static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+						{
+							argstack.argptr_buffer,
+							{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(result_construct_argnum)}
+						}
 					);
 					if (!success) {
 						std::stringstream ss;
@@ -594,7 +596,7 @@ namespace Ubpa::details {
 			Type_of<UDRefl::MethodPtr>,
 			std::make_shared<UDRefl::MethodPtr>(
 				LuaFuncToMethodPtrFunc(
-					UDRefl::Mngr->tregistry.RegisterAddLValueReference(object_type),
+					UDRefl::Mngr.tregistry.RegisterAddLValueReference(object_type),
 					result_type,
 					std::move(func_ref)
 				),
@@ -797,10 +799,12 @@ static int f_meta(lua_State * L_) {
 
 		if constexpr (std::is_void_v<Ret>) {
 			try {
-				ptr.BInvokeRet<void>(
+				ptr.Invoke<void>(
 					method_name,
-					std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
-					static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+					{
+						argstack.argptr_buffer,
+						{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)}
+					}
 				);
 			}
 			catch (const std::exception& e) {
@@ -821,10 +825,12 @@ static int f_meta(lua_State * L_) {
 		}
 		else {
 			try {
-				Ret rst = ptr.BInvokeRet<Ret>(
+				Ret rst = ptr.Invoke<Ret>(
 					method_name,
-					std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
-					static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+					{
+						argstack.argptr_buffer,
+						{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)}
+					}
 				);
 
 				details::push<Ret>(L, std::move(rst));
@@ -856,9 +862,12 @@ static int f_meta(lua_State * L_) {
 			UDRefl::SharedObject rst = ptr.MInvoke(
 				method_name,
 				rsrc,
-				rsrc,
-				std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
-				static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+				{
+					argstack.argptr_buffer,
+					{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)}
+				},
+				UDRefl::MethodFlag::All,
+				rsrc
 			);
 
 			if (!rst.GetType()) {
@@ -935,7 +944,7 @@ static int f_T_new(lua_State* L_) {
 			T t;
 			if constexpr (std::is_same_v<T, Name>) {
 				NameID id{ value };
-				std::string_view name = UDRefl::Mngr->nregistry.Viewof(id);
+				std::string_view name = UDRefl::Mngr.nregistry.Viewof(id);
 				if (name.empty()) {
 					return L.error("%s::new: Not found name of ID (lua_Integer: %I)",
 						type_name<T>().Data(),
@@ -945,7 +954,7 @@ static int f_T_new(lua_State* L_) {
 			}
 			else {
 				TypeID id{ value };
-				std::string_view name = UDRefl::Mngr->tregistry.Viewof(id);
+				std::string_view name = UDRefl::Mngr.tregistry.Viewof(id);
 				if (name.empty()) {
 					return L.error("%s::new: Not found name of ID (lua_Integer: %I)",
 						type_name<T>().Data(),
@@ -965,9 +974,9 @@ static int f_T_new(lua_State* L_) {
 			std::string_view sv{ str, len };
 			T t;
 			if constexpr (std::is_same_v<T, Name>)
-				t = UDRefl::Mngr->nregistry.Register(sv);
+				t = UDRefl::Mngr.nregistry.Register(sv);
 			else
-				t = UDRefl::Mngr->tregistry.Register(sv);
+				t = UDRefl::Mngr.tregistry.Register(sv);
 			new (buffer) T{ t };
 			break;
 		}
@@ -1181,13 +1190,13 @@ static int f_ObjectView_index(lua_State* L_) {
 		L.getmetatable(type_name<UDRefl::ObjectView>().Data());
 		L.setmetatable(-2);
 	}
-	else if (UDRefl::Mngr->ContainsMethod(ptr.GetType(), key)) {
+	else if (UDRefl::Mngr.ContainsMethod(ptr.GetType(), key)) {
 		auto* buffer = L.newuserdata(sizeof(details::CallHandle));
 		new(buffer)details::CallHandle{ ptr.GetType(), key };
 		L.getmetatable(type_name<details::CallHandle>().Data());
 		L.setmetatable(-2);
 	}
-	else if (UDRefl::Mngr->ContainsMethod(Type_of<UDRefl::ObjectView>, key)) {
+	else if (UDRefl::Mngr.ContainsMethod(Type_of<UDRefl::ObjectView>, key)) {
 		auto* buffer = L.newuserdata(sizeof(details::CallHandle));
 		new(buffer)details::CallHandle{ Type_of<UDRefl::ObjectView>, key };
 		L.getmetatable(type_name<details::CallHandle>().Data());
@@ -1416,11 +1425,13 @@ static int f_SharedObject_new(lua_State* L_) {
 	auto* rsrc = (std::pmr::unsynchronized_pool_resource*)L.touserdata(-1);
 	UDRefl::SharedObject obj;
 	try {
-		obj = UDRefl::Mngr->MMakeShared(
+		obj = UDRefl::Mngr.MMakeShared(
 			type,
 			rsrc,
-			std::span<const Type>{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)},
-			static_cast<UDRefl::ArgPtrBuffer>(argstack.argptr_buffer)
+			{
+				argstack.argptr_buffer,
+				{reinterpret_cast<Type*>(argstack.argType_buffer), static_cast<std::size_t>(argnum)}
+			}
 		);
 	}
 	catch (const std::exception& e) {
@@ -1451,30 +1462,30 @@ static int f_SharedObject_box(lua_State* L_) {
 	switch (argtype)
 	{
 	case LUA_TNIL:
-		details::push(L, UDRefl::Mngr->MakeShared(Type_of<std::nullptr_t>));
+		details::push(L, UDRefl::Mngr.MakeShared(Type_of<std::nullptr_t>));
 		break;
 	case LUA_TBOOLEAN:
-		details::push(L, UDRefl::Mngr->MakeShared(Type_of<bool>, details::auto_get<bool>(L, 1)));
+		details::push(L, UDRefl::Mngr.MakeShared(Type_of<bool>, UDRefl::TempArgsView{ details::auto_get<bool>(L, 1) }));
 		break;
 	case LUA_TLIGHTUSERDATA:
-		details::push(L, UDRefl::Mngr->MakeShared(Type_of<void*>, details::auto_get<void*>(L, 1)));
+		details::push(L, UDRefl::Mngr.MakeShared(Type_of<void*>, UDRefl::TempArgsView{ details::auto_get<void*>(L, 1) }));
 		break;
 	case LUA_TNUMBER:
 		if (L.isinteger(1))
-			details::push(L, UDRefl::Mngr->MakeShared(Type_of<lua_Integer>, details::auto_get<lua_Integer>(L, 1)));
+			details::push(L, UDRefl::Mngr.MakeShared(Type_of<lua_Integer>, UDRefl::TempArgsView{ details::auto_get<lua_Integer>(L, 1) }));
 		else {
 			assert(L.isnumber(1));
-			details::push(L, UDRefl::Mngr->MakeShared(Type_of<lua_Number>, details::auto_get<lua_Number>(L, 1)));
+			details::push(L, UDRefl::Mngr.MakeShared(Type_of<lua_Number>, UDRefl::TempArgsView{ details::auto_get<lua_Number>(L, 1) }));
 		}
 		break;
 	case LUA_TSTRING:
-		details::push(L, UDRefl::Mngr->MakeShared(Type_of<std::string>, details::auto_get<std::string_view>(L, 1)));
+		details::push(L, UDRefl::Mngr.MakeShared(Type_of<std::string>, UDRefl::TempArgsView{ details::auto_get<std::string_view>(L, 1) }));
 		break;
 	case LUA_TUSERDATA:
 		if (L.testudata(1, type_name<Type>().Data()))
-			details::push(L, UDRefl::Mngr->MakeShared(Type_of<Type>, details::auto_get<Type>(L, 1)));
+			details::push(L, UDRefl::Mngr.MakeShared(Type_of<Type>, UDRefl::TempArgsView{ details::auto_get<Type>(L, 1) }));
 		else if (L.testudata(1, type_name<Name>().Data()))
-			details::push(L, UDRefl::Mngr->MakeShared(Type_of<Name>, details::auto_get<Name>(L, 1)));
+			details::push(L, UDRefl::Mngr.MakeShared(Type_of<Name>, UDRefl::TempArgsView{ details::auto_get<Name>(L, 1) }));
 		else {
 			return L.error("%s::box : In userdata, only Type & Name can be boxed.",
 				type_name<UDRefl::SharedObject>().Data()
@@ -1605,7 +1616,7 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			}
 			methodptrs.emplace_back(
 				details::LuaFuncToMethodPtrFunc(
-					UDRefl::Mngr->tregistry.RegisterAddLValueReference(type),
+					UDRefl::Mngr.tregistry.RegisterAddLValueReference(type),
 					result_type,
 					std::move(func_ref)
 				),
@@ -1615,15 +1626,15 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			L.pop(5);
 		}
 	} while (false);
-	Type rst = UDRefl::Mngr->RegisterType(type, bases, field_types, field_names);
+	Type rst = UDRefl::Mngr.RegisterType(type, bases, field_types, field_names);
 	if(!rst)
 		return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::RegisterType failed.");
 	bool contains_ctor = false;
 	bool contains_dtor = false;
 	for (std::size_t i = 0; i < methodnames.size(); i++) {
-		Name mrst = UDRefl::Mngr->AddMethod(type, methodnames[i], UDRefl::MethodInfo{ std::move(methodptrs[i]) });
+		Name mrst = UDRefl::Mngr.AddMethod(type, methodnames[i], UDRefl::MethodInfo{ std::move(methodptrs[i]) });
 		if (!mrst) {
-			UDRefl::Mngr->typeinfos.erase(rst);
+			UDRefl::Mngr.typeinfos.erase(rst);
 			return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::AddMethod for %s failed.", methodnames[i].GetView().data());
 		}
 		if (methodnames[i] == UDRefl::NameIDRegistry::Meta::ctor)
@@ -1632,9 +1643,9 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			contains_dtor = true;
 	}
 	if (!contains_ctor)
-		UDRefl::Mngr->AddDefaultConstructor(type);
+		UDRefl::Mngr.AddDefaultConstructor(type);
 	if (!contains_dtor)
-		UDRefl::Mngr->AddDestructor(type);
+		UDRefl::Mngr.AddDestructor(type);
 	details::push(L, rst);
 	return 1;
 }
@@ -1765,7 +1776,7 @@ static int luaopen_ObjectView(lua_State* L_) {
 	{ // register ReflMngr
 		UDRefl::ext::Bootstrap();
 		void* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
-		new(buffer) UDRefl::ObjectView{ Type_of<UDRefl::ReflMngr>, UDRefl::Mngr };
+		new(buffer) UDRefl::ObjectView{ UDRefl::MngrView };
 		L.setmetatable(type_name<UDRefl::ObjectView>().Data());
 		L.setfield(-2, "ReflMngr");
 	}
