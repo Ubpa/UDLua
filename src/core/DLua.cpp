@@ -752,14 +752,17 @@ static int f_meta(lua_State * L_) {
 					--argnum;
 				}
 			}
-			else if (void* udata = L.testudata(2, type_name<UDRefl::SharedObject>().Data())) {
-				UDRefl::ObjectView* obj = static_cast<UDRefl::SharedObject*>(udata);
+			else if (auto obj = (UDRefl::SharedObject*)L.testudata(2, type_name<UDRefl::SharedObject>().Data())) {
 				if (obj->GetType() == functor.type) {
 					ptr = *obj;
 					--argnum;
 				}
-				else if (functor.type == Type_of<UDRefl::ObjectView>) {
+				else if (functor.type.Is<UDRefl::ObjectView>()) {
 					ptr = { Type_of<UDRefl::ObjectView>, static_cast<UDRefl::ObjectView*>(obj) };
+					--argnum;
+				}
+				else if (functor.type.Is<UDRefl::SharedObject>()) {
+					ptr = { Type_of<UDRefl::SharedObject>, obj };
 					--argnum;
 				}
 			}
@@ -1184,39 +1187,48 @@ static int f_ObjectView_index(lua_State* L_) {
 
 	if (L.getmetatable(1) && L.getfield(-1, key.GetView().data()))
 		return 1; // the field is already on the stack, so return directly
-	
-	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
-	if (!ptr.GetType().Valid())
-		return L.error("%s::__index : the type of object is invalid.", type_name<UDRefl::ObjectView>().Data());
 
-	if (auto key_obj = ptr.Var(key); key_obj.GetPtr()) {
-		auto* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
-		new(buffer)UDRefl::ObjectView{ key_obj };
-		L.getmetatable(type_name<UDRefl::ObjectView>().Data());
-		L.setmetatable(-2);
-	}
-	else if (UDRefl::Mngr.ContainsMethod(ptr.GetType(), key)) {
-		auto* buffer = L.newuserdata(sizeof(details::CallHandle));
-		new(buffer)details::CallHandle{ ptr.GetType(), key };
-		L.getmetatable(type_name<details::CallHandle>().Data());
-		L.setmetatable(-2);
-	}
-	else if (UDRefl::Mngr.ContainsMethod(Type_of<UDRefl::ObjectView>, key)) {
+	if (UDRefl::Mngr.ContainsMethod(Type_of<UDRefl::ObjectView>, key)) {
 		auto* buffer = L.newuserdata(sizeof(details::CallHandle));
 		new(buffer)details::CallHandle{ Type_of<UDRefl::ObjectView>, key };
 		L.getmetatable(type_name<details::CallHandle>().Data());
 		L.setmetatable(-2);
 	}
-	else if (key.Is("self")) {
-		L.pushvalue(1);
-		return 1;
+	else if (UDRefl::Mngr.ContainsMethod(Type_of<UDRefl::SharedObject>, key)) {
+		auto* buffer = L.newuserdata(sizeof(details::CallHandle));
+		new(buffer)details::CallHandle{ Type_of<UDRefl::SharedObject>, key };
+		L.getmetatable(type_name<details::CallHandle>().Data());
+		L.setmetatable(-2);
 	}
 	else {
-		return L.error("%s::__index : %s index %s failed.",
-			type_name<UDRefl::ObjectView>().Data(),
-			ptr.GetType().GetName().data(),
-			key.GetView().data());
+		auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
+		if (!ptr.GetType().Valid())
+			return L.error("%s::__index : the type of object is invalid.", type_name<UDRefl::ObjectView>().Data());
+
+		if (auto key_obj = ptr.Var(key); key_obj.GetPtr()) {
+			auto* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
+			new(buffer)UDRefl::ObjectView{ key_obj };
+			L.getmetatable(type_name<UDRefl::ObjectView>().Data());
+			L.setmetatable(-2);
+		}
+		else if (UDRefl::Mngr.ContainsMethod(ptr.GetType(), key)) {
+			auto* buffer = L.newuserdata(sizeof(details::CallHandle));
+			new(buffer)details::CallHandle{ ptr.GetType(), key };
+			L.getmetatable(type_name<details::CallHandle>().Data());
+			L.setmetatable(-2);
+		}
+		else if (key.Is("self")) {
+			L.pushvalue(1);
+			return 1;
+		}
+		else {
+			return L.error("%s::__index : %s index %s failed.",
+				type_name<UDRefl::ObjectView>().Data(),
+				ptr.GetType().GetName().data(),
+				key.GetView().data());
+		}
 	}
+	
 	return 1;
 }
 
@@ -1564,6 +1576,9 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			L.pop(3); // table, type, name
 		}
 	} while (false);
+
+	bool contains_ctor = false;
+	bool contains_dtor = false;
 	do { // methods
 		auto ftype = L.getfield(1, "methods");
 		if (ftype == LUA_TNIL)
@@ -1580,7 +1595,13 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 				return L.error("UDRefl::RegisterType : element of table's methods must be a table");
 
 			L.getfield(-1, "name");
-			methodnames.push_back(details::auto_get<Name>(L, -1));
+			Name methodname = details::auto_get<Name>(L, -1);
+			if (methodname == UDRefl::NameIDRegistry::Meta::ctor)
+				contains_ctor = true;
+			else if (methodname == UDRefl::NameIDRegistry::Meta::dtor)
+				contains_dtor = true;
+
+			methodnames.push_back(methodname);
 
 			UDRefl::MethodFlag flag;
 			if (L.getfield(-2, "flag") != LUA_TNIL) {
@@ -1632,24 +1653,18 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			L.pop(5);
 		}
 	} while (false);
-	Type rst = UDRefl::Mngr.RegisterType(type, bases, field_types, field_names);
+	Type rst = UDRefl::Mngr.RegisterType(type, bases, field_types, field_names, !contains_ctor && !contains_dtor);
 	if(!rst)
 		return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::RegisterType failed.");
-	bool contains_ctor = false;
-	bool contains_dtor = false;
 	for (std::size_t i = 0; i < methodnames.size(); i++) {
 		Name mrst = UDRefl::Mngr.AddMethod(type, methodnames[i], UDRefl::MethodInfo{ std::move(methodptrs[i]) });
 		if (!mrst) {
 			UDRefl::Mngr.typeinfos.erase(rst);
 			return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::AddMethod for %s failed.", methodnames[i].GetView().data());
 		}
-		if (methodnames[i] == UDRefl::NameIDRegistry::Meta::ctor)
-			contains_ctor = true;
-		else if (methodnames[i] == UDRefl::NameIDRegistry::Meta::dtor)
-			contains_dtor = true;
 	}
 	if (!contains_ctor)
-		UDRefl::Mngr.AddDefaultConstructor(type);
+		UDRefl::Mngr.AddTrivialCopyConstructor(type);
 	if (!contains_dtor)
 		UDRefl::Mngr.AddDestructor(type);
 	details::push(L, rst);
@@ -1792,6 +1807,8 @@ static int luaopen_ObjectView(lua_State* L_) {
 static int luaopen_SharedObject(lua_State* L_) {
 	LuaStateView L{ L_ };
 	L.newmetatable(type_name<UDRefl::SharedObject>().Data());
+	L.pushcfunction(details::wrap_dtor<UDRefl::SharedObject>());
+	L.setfield(-2, "__gc");
 	L.setfuncs(meta_SharedObject, 0);
 	L.newlib(lib_SharedObject);
 	return 1;

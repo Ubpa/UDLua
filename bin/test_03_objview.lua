@@ -13,7 +13,7 @@ local C = UDRefl.RegisterType({
     }
 })
 
-ObjectView.new(C).PrintType(1)
+ObjectView.new(C).PrintType(1) -- prints "int64"
 
 -- clear
 collectgarbage()
