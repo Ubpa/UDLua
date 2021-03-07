@@ -6,10 +6,13 @@
 - [x] test `ParamList` 
 - [x] catch exception
 - [x] combine `SharedObject` and `ObjectView`'s meta table
-- [ ] add tests of `UDRefl` 
-- [ ] Var
+- [x] add tests of `UDRefl` 
+- [x] Var
 - [ ] data-driven `RegisterType` 
-  - [ ] unowned fields
+  - [x] type
+  - [x] field
+  - [x] method
+  - [x] unowned fields
   - [ ] attrs
     - [ ] type
     - [ ] field

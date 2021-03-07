@@ -320,88 +320,6 @@ static int f_ObjectView_new(lua_State* L_) {
 	return 1;
 }
 
-static int f_ObjectView_unbox(lua_State* L_) {
-	LuaStateView L{ L_ };
-
-	if (L.gettop() != 1)
-		return L.error("%s::__unbox : The number of arguments is invalid. The function needs 1 argument (object).", type_name<UDRefl::ObjectView>().Data());
-
-	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
-
-	if (!ptr.GetPtr())
-		return L.error("%s::__unbox : The object is nil.", type_name<UDRefl::ObjectView>().Data());
-
-	ptr = ptr.RemoveConstReference();
-
-	switch (ptr.GetType().GetID().GetValue())
-	{
-	case TypeID_of<bool>.GetValue():
-		L.pushboolean(ptr.As<bool>());
-		break;
-	case TypeID_of<std::int8_t>.GetValue():
-		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int8_t>()));
-		break;
-	case TypeID_of<std::int16_t>.GetValue():
-		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int16_t>()));
-		break;
-	case TypeID_of<std::int32_t>.GetValue():
-		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int32_t>()));
-		break;
-	case TypeID_of<std::int64_t>.GetValue():
-		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int64_t>()));
-		break;
-	case TypeID_of<std::uint8_t>.GetValue():
-		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint8_t>()));
-		break;
-	case TypeID_of<std::uint16_t>.GetValue():
-		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint16_t>()));
-		break;
-	case TypeID_of<std::uint32_t>.GetValue():
-		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint32_t>()));
-		break;
-	case TypeID_of<std::uint64_t>.GetValue():
-		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint64_t>()));
-		break;
-	case TypeID_of<float>.GetValue():
-		L.pushnumber(static_cast<lua_Number>(ptr.As<float>()));
-		break;
-	case TypeID_of<double>.GetValue():
-		L.pushnumber(static_cast<lua_Number>(ptr.As<double>()));
-		break;
-	case TypeID_of<void*>.GetValue():
-		L.pushlightuserdata(ptr.As<void*>());
-		break;
-	case TypeID_of<std::nullptr_t>.GetValue():
-		L.pushnil();
-		break;
-	case TypeID_of<Type>.GetValue():
-		details::push(L, ptr.As<Type>());
-		break;
-	case TypeID_of<Name>.GetValue():
-		details::push(L, ptr.As<Name>());
-		break;
-	case TypeID_of<const char*>.GetValue():
-		L.pushstring(ptr.As<const char*>());
-		break;
-	case TypeID_of<char*>.GetValue():
-		L.pushstring(ptr.As<char*>());
-		break;
-	case TypeID_of<std::string_view>.GetValue():
-		details::push(L, ptr.As<std::string_view>());
-		break;
-	case TypeID_of<std::string>.GetValue():
-		details::push<std::string_view>(L, ptr.As<std::string>());
-		break;
-	default:
-		return L.error("%s::__unbox : The type (%s) can't unbox.",
-			type_name<UDRefl::ObjectView>().Data(),
-			ptr.GetType().GetName().data());
-		break;
-	}
-	
-	return 1;
-}
-
 static int f_ObjectView_tostring(lua_State* L_) {
 	LuaStateView L{ L_ };
 
@@ -888,7 +806,7 @@ static int f_SharedObject_new_MethodPtr(lua_State* L_) {
 	return 1;
 }
 
-static int f_SharedObject_box(lua_State* L_) {
+static int f_UDRefl_box(lua_State* L_) {
 	LuaStateView L{ L_ };
 	const int L_argnum = L.gettop();
 	if (L_argnum != 1)
@@ -939,6 +857,88 @@ static int f_SharedObject_box(lua_State* L_) {
 	return 1;
 }
 
+static int f_UDRefl_unbox(lua_State* L_) {
+	LuaStateView L{ L_ };
+
+	if (L.gettop() != 1)
+		return L.error("%s::__unbox : The number of arguments is invalid. The function needs 1 argument (object).", type_name<UDRefl::ObjectView>().Data());
+
+	auto ptr = details::auto_get<UDRefl::ObjectView>(L, 1);
+
+	if (!ptr.GetPtr())
+		return L.error("%s::__unbox : The object is nil.", type_name<UDRefl::ObjectView>().Data());
+
+	ptr = ptr.RemoveConstReference();
+
+	switch (ptr.GetType().GetID().GetValue())
+	{
+	case TypeID_of<bool>.GetValue():
+		L.pushboolean(ptr.As<bool>());
+		break;
+	case TypeID_of<std::int8_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int8_t>()));
+		break;
+	case TypeID_of<std::int16_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int16_t>()));
+		break;
+	case TypeID_of<std::int32_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int32_t>()));
+		break;
+	case TypeID_of<std::int64_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::int64_t>()));
+		break;
+	case TypeID_of<std::uint8_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint8_t>()));
+		break;
+	case TypeID_of<std::uint16_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint16_t>()));
+		break;
+	case TypeID_of<std::uint32_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint32_t>()));
+		break;
+	case TypeID_of<std::uint64_t>.GetValue():
+		L.pushinteger(static_cast<lua_Integer>(ptr.As<std::uint64_t>()));
+		break;
+	case TypeID_of<float>.GetValue():
+		L.pushnumber(static_cast<lua_Number>(ptr.As<float>()));
+		break;
+	case TypeID_of<double>.GetValue():
+		L.pushnumber(static_cast<lua_Number>(ptr.As<double>()));
+		break;
+	case TypeID_of<void*>.GetValue():
+		L.pushlightuserdata(ptr.As<void*>());
+		break;
+	case TypeID_of<std::nullptr_t>.GetValue():
+		L.pushnil();
+		break;
+	case TypeID_of<Type>.GetValue():
+		details::push(L, ptr.As<Type>());
+		break;
+	case TypeID_of<Name>.GetValue():
+		details::push(L, ptr.As<Name>());
+		break;
+	case TypeID_of<const char*>.GetValue():
+		L.pushstring(ptr.As<const char*>());
+		break;
+	case TypeID_of<char*>.GetValue():
+		L.pushstring(ptr.As<char*>());
+		break;
+	case TypeID_of<std::string_view>.GetValue():
+		details::push(L, ptr.As<std::string_view>());
+		break;
+	case TypeID_of<std::string>.GetValue():
+		details::push<std::string_view>(L, ptr.As<std::string>());
+		break;
+	default:
+		return L.error("%s::__unbox : The type (%s) can't unbox.",
+			type_name<UDRefl::ObjectView>().Data(),
+			ptr.GetType().GetName().data());
+		break;
+	}
+
+	return 1;
+}
+
 static int f_UDRefl_RegisterType(lua_State* L_) {
 	LuaStateView L{ L_ };
 	if (L.gettop() != 1)
@@ -954,6 +954,9 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 
 	std::vector<Name> methodnames;
 	std::vector<UDRefl::MethodPtr> methodptrs;
+
+	std::vector<Name> unowned_field_names;
+	std::vector<UDRefl::SharedObject> unowned_field_objs;
 
 	{ // name
 		L.getfield(1, "type");
@@ -1073,20 +1076,85 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			L.pop(5);
 		}
 	} while (false);
+
+	do { // methods
+		auto ftype = L.getfield(1, "unowned_fields");
+		if (ftype == LUA_TNIL)
+			break;
+
+		if (ftype != LUA_TTABLE)
+			return L.error("UDRefl::RegisterType : table's unowned_fields must be a table");
+
+		int unowned_fields_index = L.gettop();
+
+		{ // get unsync resource
+			int success = L.getfield(LUA_REGISTRYINDEX, details::UnsyncRsrc);
+			assert(success);
+		}
+		auto* rsrc = (std::pmr::unsynchronized_pool_resource*)L.touserdata(-1);
+
+		lua_Integer flen = L.lenL(unowned_fields_index);
+		unowned_field_names.reserve(flen);
+		unowned_field_objs.reserve(flen);
+		for (lua_Integer i = 1; i <= flen; i++) {
+			if (L.geti(unowned_fields_index, i) != LUA_TTABLE)
+				return L.error("UDRefl::RegisterType : element of table's unowned_fields must be a table");
+			int unowned_field_index = L.gettop();
+			L.getfield(unowned_field_index, "name");
+			unowned_field_names.push_back(details::auto_get<Name>(L, -1));
+			int args_type = L.getfield(unowned_field_index, "init_args");
+			int args_index = L.gettop();
+			L.pushcfunction(f_SharedObject_new);
+			L.getfield(unowned_field_index, "type");
+			Type unowned_field_type = details::auto_get<Type>(L, -1);
+			lua_Integer args_num = 0;
+			if (args_type) {
+				if(args_type != LUA_TTABLE)
+					return L.error("UDRefl::RegisterType : args of table's an unowned_field must be a table");
+				
+				args_num = L.lenL(args_index);
+				L.checkstack(static_cast<int>(args_num));
+				for (lua_Integer j = 1; j <= args_num; j++)
+					L.geti(args_index, j);
+			}
+			int error = L.pcall(1 + static_cast<int>(args_num), 1, 0); // SharedObject.new(type, args...)
+			if (error) {
+				return L.error("UDRefl::RegisterType: Call %s::new (%s, %I args) failed.\n%s",
+					type_name<UDRefl::SharedObject>().Data(),
+					unowned_field_type.GetName().data(),
+					args_num,
+					L.tostring(-1));
+			}
+			unowned_field_objs.push_back(details::auto_get<UDRefl::SharedObject>(L, -1));
+			L.pop(4); // table, name, init_args, SharedObject
+		}
+	} while (false);
+
 	Type rst = UDRefl::Mngr.RegisterType(type, bases, field_types, field_names, !contains_ctor && !contains_dtor);
 	if(!rst)
-		return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::RegisterType failed.");
+		return L.error("UDRefl::RegisterType : Call Ubpa::UDRefl::ReflMngr::RegisterType failed.");
+
 	for (std::size_t i = 0; i < methodnames.size(); i++) {
 		Name mrst = UDRefl::Mngr.AddMethod(type, methodnames[i], UDRefl::MethodInfo{ std::move(methodptrs[i]) });
 		if (!mrst) {
 			UDRefl::Mngr.typeinfos.erase(rst);
-			return L.error("UDRefl::RegisterType : Call UDRefl::ReflMngr::AddMethod for %s failed.", methodnames[i].GetView().data());
+			return L.error("UDRefl::RegisterType : Call Ubpa::UDRefl::ReflMngr::AddMethod for %s failed.", methodnames[i].GetView().data());
 		}
 	}
+
 	if (!contains_ctor)
 		UDRefl::Mngr.AddTrivialCopyConstructor(type);
 	if (!contains_dtor)
 		UDRefl::Mngr.AddDestructor(type);
+
+	for (std::size_t i = 0; i < unowned_field_names.size(); i++) {
+		Name frst = UDRefl::Mngr.AddField(type, unowned_field_names[i], UDRefl::FieldInfo{ UDRefl::FieldPtr{std::move(unowned_field_objs[i])} });
+		if (!frst) {
+			UDRefl::Mngr.typeinfos.erase(rst);
+			return L.error("UDRefl::RegisterType : Call Ubpa::UDRefl::ReflMngr::AddField for unowned %s failed.", unowned_field_names[i].GetView().data());
+		}
+	}
+
 	details::push(L, rst);
 	return 1;
 }
@@ -1119,7 +1187,6 @@ static const struct luaL_Reg meta_Type[] = {
 
 static const struct luaL_Reg lib_ObjectView[] = {
 	"new", f_ObjectView_new,
-	"unbox", f_ObjectView_unbox,
 	"range", f_ObjectView_range,
 	"tuple_bind", f_ObjectView_tuple_bind,
 	NULL, NULL
@@ -1146,7 +1213,7 @@ static const struct luaL_Reg meta_ObjectView[] = {
 	"__shl", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_shl, 2>,
 	"__shr", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_shr, 2>,
 	"__sub", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_sub, 2>,
-	"__unbox", f_ObjectView_unbox,
+	"__unbox", f_UDRefl_unbox,
 	"__tostring", f_ObjectView_tostring,
 	"__unm", &f_meta<UDRefl::ObjectView, details::Meta::t_operator_sub, 1>,
 
@@ -1161,13 +1228,14 @@ static const struct luaL_Reg meta_ObjectView[] = {
 
 static const struct luaL_Reg lib_SharedObject[] = {
 	"new", f_SharedObject_new,
-	"box", f_SharedObject_box,
 	"new_MethodPtr", f_SharedObject_new_MethodPtr,
 	NULL, NULL
 };
 
 static const struct luaL_Reg lib_UDRefl[] = {
 	"RegisterType", f_UDRefl_RegisterType,
+	"box", f_UDRefl_box,
+	"unbox", f_UDRefl_unbox,
 	NULL, NULL
 };
 

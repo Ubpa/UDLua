@@ -15,13 +15,13 @@
 
 Ubpa Lua base on [UDRefl](https://github.com/ubpa/udrefl) (the "best" C++20 dynamic reflection library), which make it easy to use C++ in Lua.
 
-# Documents
+## Documents
 
 - [todo](doc/todo.md) 
 
-# How to use
+## How to use
 
-> the example code is [here](https://github.com/Ubpa/UDLua/blob/master/bin/README.lua) 
+> the example code is [here](bin/README.lua) 
 
 Suppose you need to use `struct vec` 
 
@@ -33,7 +33,7 @@ struct vec {
 };
 ```
 
-## Manual registration on Lua
+### Manual registration on Lua
 
 > if you want to do it on C++, check out this link [->](https://github.com/ubpa/udrefl#manual-registration).
 
@@ -49,7 +49,7 @@ local vec = UDRefl.RegisterType({
       name = "norm",
       result = "float32",
       body = function (p)
-        return math.sqrt(ObjectView.unbox(p.x * p.x + p.y * p.y))
+        return math.sqrt(UDRefl.unbox(p.x * p.x + p.y * p.y))
       end
     }
   }
@@ -103,4 +103,14 @@ end
 - Clang/LLVM >= 10.0
 - GCC >= 10.0
 - MSVC >= 1926
+
+> Tested platforms:
+>
+> - Windows 10: VS2019 16.8.5
+>
+> - Ubuntu 20: GCC 10.2, Clang 11.0
+>
+> - MacOS 11.0 : GCC 10.2
+>
+>   > AppleClang 12 and Clang 11 is not supported
 
