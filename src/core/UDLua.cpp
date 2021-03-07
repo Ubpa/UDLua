@@ -623,13 +623,39 @@ static int f_SharedObject_new(lua_State* L_) {
 
 	Type type;
 	int argtype = L.type(1);
+	int argnum;
+	int arg_begin;
 	switch (argtype)
 	{
 	case LUA_TSTRING:
 		type = Type{ details::auto_get<std::string_view>(L, 1) };
+		argnum = L_argnum - 1;
+		arg_begin = L_argnum - argnum + 1;
 		break;
 	case LUA_TUSERDATA:
 		type = *static_cast<Type*>(L.checkudata(1, type_name<Type>().Data()));
+		argnum = L_argnum - 1;
+		arg_begin = L_argnum - argnum + 1;
+		break;
+	case LUA_TTABLE:
+		// { type = "...", init_args = { args... } }
+		if(L_argnum != 1)
+			return L.error("%s::new : The 1st argument is table, so the number of arguments must be 1.", type_name<UDRefl::SharedObject>().Data());
+		L.getfield(1, "type");
+		type = details::auto_get<Type>(L, -1);
+		if (auto init_args_type = L.getfield(1, "init_args")) {
+			if(init_args_type != LUA_TTABLE)
+				return L.error("%s::new : The type of init_args must be table.", type_name<UDRefl::SharedObject>().Data());
+			int init_args_index = L.gettop();
+			arg_begin = init_args_index + 1;
+			argnum = static_cast<int>(L.lenL(init_args_index));
+			L.checkstack(argnum);
+			for (lua_Integer i = 1; i <= static_cast<lua_Integer>(argnum); i++)
+				L.geti(init_args_index, i);
+		}
+		else
+			argnum = 0;
+		
 		break;
 	default:
 		return L.error("%s::new : The function doesn't support %s.",
@@ -638,13 +664,11 @@ static int f_SharedObject_new(lua_State* L_) {
 		);
 	}
 
-	const int argnum = L_argnum - 1;
-
 	details::ArgStack argstack;
-	int error = details::FillArgStack(L, argstack, L_argnum - argnum + 1, argnum);
+	int error = details::FillArgStack(L, argstack, arg_begin, argnum);
 
 	if (error) {
-		return L.error("%s::new : \n%s",
+		return L.error("%s::new : FillArgStack Failed\n%s",
 			type_name<UDRefl::SharedObject>().Data(), L.tostring(-1));
 	}
 
@@ -1077,7 +1101,7 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 		}
 	} while (false);
 
-	do { // methods
+	do { // unowned_fields
 		auto ftype = L.getfield(1, "unowned_fields");
 		if (ftype == LUA_TNIL)
 			break;
@@ -1099,34 +1123,23 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 		for (lua_Integer i = 1; i <= flen; i++) {
 			if (L.geti(unowned_fields_index, i) != LUA_TTABLE)
 				return L.error("UDRefl::RegisterType : element of table's unowned_fields must be a table");
+
 			int unowned_field_index = L.gettop();
+
 			L.getfield(unowned_field_index, "name");
 			unowned_field_names.push_back(details::auto_get<Name>(L, -1));
-			int args_type = L.getfield(unowned_field_index, "init_args");
-			int args_index = L.gettop();
+
 			L.pushcfunction(f_SharedObject_new);
-			L.getfield(unowned_field_index, "type");
-			Type unowned_field_type = details::auto_get<Type>(L, -1);
-			lua_Integer args_num = 0;
-			if (args_type) {
-				if(args_type != LUA_TTABLE)
-					return L.error("UDRefl::RegisterType : args of table's an unowned_field must be a table");
-				
-				args_num = L.lenL(args_index);
-				L.checkstack(static_cast<int>(args_num));
-				for (lua_Integer j = 1; j <= args_num; j++)
-					L.geti(args_index, j);
-			}
-			int error = L.pcall(1 + static_cast<int>(args_num), 1, 0); // SharedObject.new(type, args...)
+			L.pushvalue(unowned_field_index);
+			int error = L.pcall(1, 1, 0); // SharedObject.new({...})
 			if (error) {
-				return L.error("UDRefl::RegisterType: Call %s::new (%s, %I args) failed.\n%s",
+				return L.error("UDRefl::RegisterType: Call %s::new failed.\n%s",
 					type_name<UDRefl::SharedObject>().Data(),
-					unowned_field_type.GetName().data(),
-					args_num,
 					L.tostring(-1));
 			}
 			unowned_field_objs.push_back(details::auto_get<UDRefl::SharedObject>(L, -1));
-			L.pop(4); // table, name, init_args, SharedObject
+
+			L.pop(2); // table, name
 		}
 	} while (false);
 

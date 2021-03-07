@@ -1,17 +1,53 @@
 local t = UDRefl.RegisterType({
-    -----------
-    -- basic --
-    -----------
-
     type = "type_name",
+
+    -- [optional]
+    attrs = {
+        {
+            type = "attr_type_name",
+            init_args = { arg, "..." }  -- [optional]
+        },
+        "..."
+    }
     
     -- [optional]
     bases = { "base_name",  "..." },
 
     -- [optional]
     fields = {
-        { type = "field_type_name", name = "field_name" },
-        { "..." }
+        {
+            type = "field_type_name",
+            name = "field_name",
+
+            -- [optional]
+            attrs = {
+                {
+                    type = "attr_type_name",
+                    init_args = { arg, "..." }  -- [optional]
+                },
+                "..."
+            }
+        },
+        "..."
+    },
+
+    -- [optional]
+    unowned_fields = {
+        {
+            type = "field_type_name",
+            name = "field_name",
+            init_args = { arg, "..." }, -- [optional]
+
+            -- [optional]
+            attrs = {
+                {
+                    type = "attr_type_name",
+                    init_args = { arg, "..." }  -- [optional]
+                },
+                "..."
+            }
+        },
+        "..."
     },
 
     -- [optional]
@@ -21,21 +57,16 @@ local t = UDRefl.RegisterType({
             flag = "Variable", -- Variable / Const / Static
             result = "result_type_name", -- [optional]
             params = { "param_type_name", "..." }
-        },
-        { "..." }
-    },
 
-    ---------
-    -- pro --
-    ---------
-
-    -- [optional]
-    unowned_fields = {
-        {
-            type = "field_type_name",
-            name = "field_name"
-            init_args = { arg, "..." } -- [optional]
+            -- [optional]
+            attrs = {
+                {
+                    type = "attr_type_name",
+                    init_args = { arg, "..." }  -- [optional]
+                },
+                "..."
+            }
         },
-        { "..." }
-    },
+        "..."
+    }
 })
