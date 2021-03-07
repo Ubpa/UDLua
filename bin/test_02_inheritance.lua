@@ -1,4 +1,3 @@
--- Manual registration
 local A = UDRefl.RegisterType({
     type = "A",
     fields = {

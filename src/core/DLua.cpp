@@ -376,11 +376,15 @@ namespace Ubpa::details {
 		return 0;
 	}
 
-	UDRefl::MethodPtr::Func LuaFuncToMethodPtrFunc(Type object_type, Type result_type, LuaRef func_ref) {
+	UDRefl::MethodPtr::Func LuaFuncToMethodPtrFunc(Type object_type, UDRefl::MethodFlag flag, Type result_type, LuaRef func_ref) {
+		assert(UDRefl::enum_single(flag));
+		Type ref_obj_type = flag == UDRefl::MethodFlag::Static ? Type{}
+		: (flag == UDRefl::MethodFlag::Const ? UDRefl::Mngr.tregistry.RegisterAddConstLValueReference(object_type)
+			: UDRefl::Mngr.tregistry.RegisterAddLValueReference(object_type));
 		return
 			[
-				object_type = UDRefl::Mngr.tregistry.RegisterAddLValueReference(object_type),
-				result_type,
+				ref_obj_type,
+				flag, result_type,
 				fref = std::make_shared<LuaRef>(std::move(func_ref))
 			] (void* obj, void* result_buffer, UDRefl::ArgsView args) mutable
 			{
@@ -389,10 +393,10 @@ namespace Ubpa::details {
 				fref->Get();
 				const int n = static_cast<int>(args.Types().size());
 				int callargnum;
-				if (object_type.Valid()) {
+				if (ref_obj_type.Valid()) {
 					callargnum = n + 1;
 					L.checkstack(callargnum);
-					push(L, UDRefl::ObjectView{ object_type, obj });
+					push(L, UDRefl::ObjectView{ ref_obj_type, obj });
 				}
 				else {
 					callargnum = n;
@@ -608,6 +612,7 @@ namespace Ubpa::details {
 			std::make_shared<UDRefl::MethodPtr>(
 				LuaFuncToMethodPtrFunc(
 					UDRefl::Mngr.tregistry.RegisterAddLValueReference(object_type),
+					flag,
 					result_type,
 					std::move(func_ref)
 				),
@@ -871,7 +876,7 @@ static int f_meta(lua_State * L_) {
 			);
 
 			if (!rst.GetType()) {
-				return L.error("%s::%s : Call UDRefl::ObjectView::MInvoke (%s) failed.",
+				return L.error("%s::%s : Call Ubpa::UDRefl::ObjectView::MInvoke (%s) failed.",
 					type_name<Functor>().Data(),
 					MetaName::Data(),
 					method_name.GetView().data()
@@ -1617,6 +1622,7 @@ static int f_UDRefl_RegisterType(lua_State* L_) {
 			methodptrs.emplace_back(
 				details::LuaFuncToMethodPtrFunc(
 					UDRefl::Mngr.tregistry.RegisterAddLValueReference(type),
+					flag,
 					result_type,
 					std::move(func_ref)
 				),
