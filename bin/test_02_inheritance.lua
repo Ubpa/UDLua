@@ -34,9 +34,9 @@ v.b = 3
 v.c = 4
 v.d = 5
 
-for iter in v:GetTypeFieldVars():__range() do
-    local type, field, var = iter:__indirection():__tuple_bind()
-    print(type.type:GetName() .. "::" .. field.name:GetView() .. ": ".. var)
+for iter in v:GetVars():__range() do
+    local name, var = iter:__indirection():__tuple_bind()
+    print(iter:GetObjectView():GetType():GetName() .. "::" .. name:GetView() .. ": ".. var)
 end
 
 -- clear

@@ -33,12 +33,14 @@ local vec = UDRefl.RegisterType({
     }
 })
 
-for field_iter in ObjectView.ReflMngr:GetFields(vec):__range() do
-    print(field_iter:__indirection().name:GetView())
+for iter in ObjectView.new(vec):GetFields():__range() do
+    local name, info = iter:__indirection():__tuple_bind()
+    print(name:GetView())
 end
 
-for method_iter in ObjectView.ReflMngr:GetMethods(vec):__range() do
-    print(method_iter:__indirection().name:GetView())
+for iter in ObjectView.new(vec):GetMethods():__range() do
+    local name, info = iter:__indirection():__tuple_bind()
+    print(name:GetView())
 end
 
 local v = SharedObject.new(vec)

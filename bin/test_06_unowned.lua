@@ -10,17 +10,18 @@ local vec = UDRefl.RegisterType({
     }
 })
 
-for field_iter in ObjectView.ReflMngr:GetFields(vec):__range() do
-    print(field_iter:__indirection().name:GetView())
+for iter in ObjectView.new(vec):GetMethods():__range() do
+    local name, info = iter:__indirection():__tuple_bind()
+    print(name:GetView())
 end
 
 local v = SharedObject.new(vec)
 v.x = 3
 v.y = 4
 
-for iter in v:GetTypeFieldVars():__range() do
-    local type, field, var = iter:__indirection():__tuple_bind()
-    print(field.name:GetView() .. ": ".. var)
+for iter in v:GetVars():__range() do
+    local name, var = iter:__indirection():__tuple_bind()
+    print(name:GetView() .. ": ".. var)
 end
 
 -- clear

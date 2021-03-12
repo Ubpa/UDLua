@@ -59,12 +59,14 @@ local vec = UDRefl.RegisterType({
 ### Iterate over members
 
 ```lua
-for field_iter in ObjectView.ReflMngr:GetFields(vec):__range() do
-  print(field_iter:__indirection().name:GetView())
+for iter in ObjectView.new(vec):GetFields():__range() do
+  local name, info = iter:__indirection():__tuple_bind()
+  print(name:GetView())
 end
 
-for method_iter in ObjectView.ReflMngr:GetMethods(vec):__range() do
-  print(method_iter:__indirection().name:GetView())
+for iter in ObjectView.new(vec):GetMethods():__range() do
+  local name, info = iter:__indirection():__tuple_bind()
+  print(name:GetView())
 end
 ```
 
@@ -93,8 +95,8 @@ print("norm: " .. v:norm()) -- prints "5"
 
 ```lua
 for iter in v:GetTypeFieldVars():__range() do
-  local type, field, var = iter:__indirection():__tuple_bind()
-  print(field.name:GetView() .. ": ".. var)
+  local name, var = iter:__indirection():__tuple_bind()
+  print(name:GetView() .. ": ".. var)
 end
 ```
 

@@ -103,6 +103,14 @@ int Ubpa::details::FillArgStack(LuaStateView L, ArgStack& stack, int begin, int 
 		int type = L.type(arg);
 		switch (type)
 		{
+		case LUA_TNIL:
+		{
+			auto arg_buffer = &copied_args_buffer[num_copied_args++];
+			argptr_buffer[i] = arg_buffer;
+			UDRefl::buffer_as<Type>(&argType_buffer[i]) = Type_of<std::nullptr_t>;
+			UDRefl::buffer_as<std::nullptr_t>(arg_buffer) = nullptr;
+			break;
+		}
 		case LUA_TBOOLEAN:
 		{
 			auto arg_buffer = &copied_args_buffer[num_copied_args++];
@@ -218,7 +226,8 @@ UDRefl::MethodPtr::Func Ubpa::details::LuaFuncToMethodPtrFunc(Type object_type, 
 		details::LuaStackPopGuard popguard{ L, result_construct_argnum };
 		if (error) {
 			std::stringstream ss;
-			ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda:\n" << auto_get<std::string_view>(L, -1);
+			ss << type_name<UDRefl::SharedObject>().View() << "::new_MethodPtr::lambda(" << ref_obj_type .GetName() << "):" << std::endl
+				<< auto_get<std::string_view>(L, -1);
 			std::string str = ss.str();
 			std::runtime_error except{ str.data() };
 			L.pop(1);
