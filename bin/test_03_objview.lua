@@ -14,6 +14,7 @@ local C = UDRefl.RegisterType({
 })
 
 ObjectView.new(C).PrintType(1) -- prints "int64"
+ObjectView.new(C).PrintType(5.0) -- prints "float64"
 
 -- clear
 collectgarbage()

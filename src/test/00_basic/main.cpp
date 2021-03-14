@@ -5,7 +5,7 @@
 int main() {
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
-	luaopen_UDRefl_libs(L);
+	luaopen_UDLua(L);
 
 	char buffer[256];
 	while (std::fgets(buffer, sizeof(buffer), stdin) != nullptr) {

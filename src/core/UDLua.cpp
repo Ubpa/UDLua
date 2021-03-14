@@ -403,8 +403,7 @@ static int f_ObjectView_index(lua_State* L_) {
 	constexpr auto contains_method = [](UDRefl::ObjectView obj, Name name) {
 		auto methods = UDRefl::MethodRange{ obj };
 		return std::find_if(methods.begin(), methods.end(), [name](const auto& name_methodinfo) {
-			const auto& [n, m] = name_methodinfo;
-			return n == name;
+			return std::get<const Name>(name_methodinfo) == name;
 		}) != methods.end();
 	};
 
@@ -1456,7 +1455,7 @@ static int luaopen_ObjectView(lua_State* L_) {
 		L.setfield(-2, "Global");
 	}
 	{ // register ReflMngr
-		UDRefl::ext::Bootstrap();
+		Ubpa_UDRefl_ext_Bootstrap();
 		void* buffer = L.newuserdata(sizeof(UDRefl::ObjectView));
 		new(buffer) UDRefl::ObjectView{ UDRefl::MngrView };
 		L.setmetatable(type_name<UDRefl::ObjectView>().Data());
@@ -1490,7 +1489,7 @@ static const luaL_Reg UDRefl_libs[] = {
 	{NULL, NULL}
 };
 
-void luaopen_UDRefl_libs(lua_State* L_) {
+UDLua_core_API void luaopen_UDLua(lua_State* L_) {
 	init_CallHandle(L_);
 
 	LuaStateView L{ L_ };

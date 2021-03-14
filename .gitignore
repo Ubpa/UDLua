@@ -273,7 +273,9 @@ config/config.out
 *.exe
 *.lib
 *.ilk
+*.exp
 *.pdb
+*.dll
 build/
 _deps/
 

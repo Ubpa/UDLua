@@ -8,7 +8,8 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 Ubpa_AddTarget(
-  MODE STATIC
+  MODE SHARED
+  RET_TARGET_NAME tname
   SOURCE
     "${PROJECT_SOURCE_DIR}/include/UDLua"
   INC
@@ -19,3 +20,5 @@ Ubpa_AddTarget(
   C_OPTION_PRIVATE
     ${c_options_private}
 )
+
+set_target_properties(${tname} PROPERTIES OUTPUT_NAME UDLua CLEAN_DIRECT_OUTPUT 1)
