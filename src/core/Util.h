@@ -1,8 +1,8 @@
 #pragma
 
 #include <ULuaW/ULuaW.h>
-#include <UDRefl/UDRefl.h>
-#include <UTemplate/TStr.h>
+#include <UDRefl/UDRefl.hpp>
+#include <UTemplate/TStr.hpp>
 
 // Meta
 namespace Ubpa::details {
